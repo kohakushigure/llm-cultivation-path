@@ -231,6 +231,10 @@ def test_ml_profile_uses_ml_image(monkeypatch: pytest.MonkeyPatch):
 
 def test_trial_quota_env_issued_when_no_key_and_enabled(monkeypatch: pytest.MonkeyPatch):
     """联网步骤无私人 Key 且试用额度开启：注入临时令牌而非真 Key。"""
+    import importlib.util
+
+    if importlib.util.find_spec("app.services.llm_proxy") is None:
+        pytest.skip("试用额度为云端专属模块，公开库（本地版）跳过")
     from app.config import settings
 
     monkeypatch.setattr(settings, "llm_proxy_enabled", True)
