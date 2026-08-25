@@ -55,8 +55,8 @@ export function parsePythonLite(code: string): AstLiteNode[] {
       nodes.push({ type: 'import_from', name: m[1], line: i + 1 })
       return
     }
-    // 顶层赋值
-    m = trimmed.match(/^(\w+)\s*=/)
+    // 顶层赋值（`=` 但不包括 `==` 比较）
+    m = trimmed.match(/^(\w+)\s*=(?!=)/)
     if (m && !KEYWORDS.has(m[1])) {
       nodes.push({ type: 'assign', name: m[1], line: i + 1 })
     }

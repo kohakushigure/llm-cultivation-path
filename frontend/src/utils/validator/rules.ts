@@ -61,8 +61,13 @@ export function checkRule(rule: ValidationRule, ctx: ValidateContext): Validatio
       return { ruleIndex: 0, ...base, passed: !stillHas, details: stillHas ? `代码仍含未完成的 ${rule.placeholder}` : undefined }
     }
     case 'regex_in_code': {
-      const re = new RegExp(rule.pattern, rule.flags)
-      return { ruleIndex: 0, ...base, passed: re.test(code) }
+      // 非法 pattern 回退为字面量包含（与 sandbox_run.expectedStdout 的回退策略一致）
+      try {
+        const re = new RegExp(rule.pattern, rule.flags)
+        return { ruleIndex: 0, ...base, passed: re.test(code) }
+      } catch {
+        return { ruleIndex: 0, ...base, passed: code.includes(rule.pattern), details: '非法正则, 已按字面量匹配' }
+      }
     }
     case 'output_contains': {
       if (!sandboxOutput) return { ruleIndex: 0, ...base, passed: false, details: '需先运行代码' }
@@ -73,8 +78,12 @@ export function checkRule(rule: ValidationRule, ctx: ValidateContext): Validatio
     }
     case 'output_matches': {
       if (!sandboxOutput) return { ruleIndex: 0, ...base, passed: false, details: '需先运行代码' }
-      const re = new RegExp(rule.pattern, rule.flags)
-      return { ruleIndex: 0, ...base, passed: re.test(sandboxOutput.stdout) }
+      try {
+        const re = new RegExp(rule.pattern, rule.flags)
+        return { ruleIndex: 0, ...base, passed: re.test(sandboxOutput.stdout) }
+      } catch {
+        return { ruleIndex: 0, ...base, passed: sandboxOutput.stdout.includes(rule.pattern), details: '非法正则, 已按字面量匹配' }
+      }
     }
     case 'output_equals': {
       if (!sandboxOutput) return { ruleIndex: 0, ...base, passed: false, details: '需先运行代码' }

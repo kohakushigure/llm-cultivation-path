@@ -75,10 +75,10 @@ describe('regex_in_code', () => {
     expect(checkRule({ type: 'regex_in_code', pattern: 'DEEPSEEK', flags: 'i', message: 'm' }, { code, step: makeStep([]) }).passed).toBe(true)
   })
 
-  it('现状刻画：非法 pattern 直接抛异常（疑似 bug，见 issue #20）', () => {
-    expect(() =>
-      checkRule({ type: 'regex_in_code', pattern: '[', message: 'm' }, { code: 'x', step: makeStep([]) }),
-    ).toThrow()
+  it('非法 pattern 回退为字面量包含匹配（不再抛异常）', () => {
+    const ctx = { code: 'x = a[0]', step: makeStep([]) }
+    expect(checkRule({ type: 'regex_in_code', pattern: '[', message: 'm' }, ctx).passed).toBe(true)
+    expect(checkRule({ type: 'regex_in_code', pattern: '[', message: 'm' }, { code: 'x = 1', step: makeStep([]) }).passed).toBe(false)
   })
 })
 
@@ -212,9 +212,9 @@ describe('parsePythonLite', () => {
     expect(nodes.filter((n) => n.type === 'call').map((n) => n.name)).toEqual([])
   })
 
-  it('现状刻画：比较运算 == 被误判为 assign（疑似 bug，见 issue #21）', () => {
-    const nodes = parsePythonLite('x == 1')
-    expect(nodes.some((n) => n.type === 'assign' && n.name === 'x')).toBe(true)
+  it('比较运算 == 不误判为 assign', () => {
+    expect(parsePythonLite('x == 1').filter((n) => n.type === 'assign')).toEqual([])
+    expect(parsePythonLite('x = 1').filter((n) => n.type === 'assign')).toHaveLength(1)
   })
 })
 
