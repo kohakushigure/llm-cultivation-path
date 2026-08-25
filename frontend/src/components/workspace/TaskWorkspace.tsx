@@ -5,7 +5,7 @@ import { useProgress } from '@/features/progression/store'
 import { ACHIEVEMENTS } from '@/features/progression/achievements'
 import { useAiConfig, useHasLlmAvailable } from '@/features/aiConfig/store'
 import { api } from '@/api/client'
-import { validateStep, stepNeedsSandboxRun } from '@/utils/validator'
+import { validateStepFlow } from '@/utils/validator/flow'
 import { strHash } from '@/utils/hash'
 import type { SandboxRunResponse, StepValidationResult } from '@shared/types'
 import { TaskHeader } from './TaskHeader'
@@ -156,118 +156,52 @@ export function TaskWorkspace() {
 
   const handleValidate = useCallback(async () => {
     if (!step || !task) return
-    if (stepNeedsNetwork && !llmAvailable) {
-      setOutput({
-        stdout: '',
-        stderr: '联网课程需要 API Key 或站点共享额度。请点击右上角齿轮配置。',
-        exitCode: -1,
-        durationMs: 0,
-        timedOut: false,
-      })
-      setAiConfigModalOpen(true)
-      return
-    }
-    if (inviteRequired && !accessCode.trim()) {
-      setOutput({
-        stdout: '',
-        stderr: '当前服务器需要邀请码，请点击右上角齿轮填写。',
-        exitCode: -1,
-        durationMs: 0,
-        timedOut: false,
-      })
-      setAiConfigModalOpen(true)
-      return
-    }
-    setHasRunOrValidated(true)
-    let sandboxOutput = output
-    // 联网步骤必须用当前代码完成一次真实 DeepSeek 运行；其他步骤按规则决定是否先运行。
-    const needsCurrentRun = (stepNeedsNetwork || stepNeedsSandboxRun(step)) &&
-      (!sandboxOutput || lastRunCodeHash !== strHash(code))
-    if (needsCurrentRun) {
-      setRunning(true)
-      try {
-        sandboxOutput = await api.runSandbox({
-          code,
-          language: 'python',
-          timeout: sandboxTimeout,
-          needsNetwork: stepNeedsNetwork,
-          env: stepNeedsNetwork ? buildLlmEnv() : undefined,
-          sandboxProfile,
-        })
-        setOutput(sandboxOutput)
-        setLastRunCodeHash(strHash(code))
-        progress.recordSandboxRun()
-      } catch (e) {
-        sandboxOutput = {
-          stdout: '',
-          stderr: String(e),
-          exitCode: -1,
-          durationMs: 0,
-          timedOut: false,
-          error: String(e),
-        }
-        setOutput(sandboxOutput)
-      } finally {
-        setRunning(false)
-      }
-    }
-    const result = await validateStep({ code, step, sandboxOutput })
-    if (stepNeedsNetwork && sandboxOutput?.exitCode !== 0) {
-      result.allPassed = false
-      result.results.push({
-        ruleIndex: result.results.length,
-        ruleType: 'sandbox_run',
-        passed: false,
-        blocking: true,
-        message: '必须用你的 DeepSeek Key 成功完成真实联网运行',
-        details: '请检查 Key、账户余额、模型名和网络后重试。',
-      })
-    }
-    // 已迁移行为测试的步骤以服务端 pytest 为最终判定；未迁移步骤保留现有
-    // 页面即时反馈，避免把迁移中的课程误判为失败。
+    setRunning(true)
     try {
-      const authoritative = await api.validateStep(
-        task.id,
-        step.id,
-        code,
-        stepNeedsNetwork ? buildLlmEnv() : undefined,
+      const outcome = await validateStepFlow(
+        {
+          code,
+          step,
+          taskId: task.id,
+          stepNeedsNetwork,
+          llmAvailable,
+          inviteRequired,
+          accessCode,
+          sandboxTimeout,
+          sandboxProfile,
+          env: stepNeedsNetwork ? buildLlmEnv() : undefined,
+          lastOutput: output,
+          lastRunCodeHash,
+        },
+        { runSandbox: api.runSandbox, runServerTest: api.validateStep },
       )
-      result.results.push({
-        ruleIndex: result.results.length,
-        ruleType: 'unit_test',
-        passed: authoritative.passed,
-        blocking: true,
-        message: authoritative.passed ? '服务端行为测试通过' : '服务端行为测试未通过',
-        details: authoritative.output.stdout || authoritative.output.stderr || 'pytest 未返回输出',
-      })
-      if (!authoritative.passed) result.allPassed = false
-    } catch (error) {
-      // 409 代表该历史步骤尚未迁移 .test.py，不影响原有即时反馈通关。
-      if (!(error instanceof Error) || !error.message.startsWith('409:')) {
-        result.allPassed = false
-        result.results.push({
-          ruleIndex: result.results.length,
-          ruleType: 'unit_test',
-          passed: false,
-          blocking: true,
-          message: '服务端行为测试暂时不可用',
-          details: error instanceof Error ? error.message : String(error),
-        })
+      if (outcome.kind === 'blocked') {
+        setOutput(outcome.output)
+        setAiConfigModalOpen(true)
+        return
       }
-    }
-    setValidation(result)
-    if (result.allPassed) {
-      const willCompleteTask = task.steps.every(
-        (s) => progress.completedSteps.includes(s.id) || s.id === step.id,
-      )
-      progress.completeStep(step.id, task.id, STEP_BASE_EXP)
-      let taskExp = STEP_BASE_EXP
-      if (willCompleteTask && !progress.completedTasks.includes(task.id)) {
-        progress.completeTask(task.id, task.expReward, hintsRevealed > 0)
-        taskExp += task.expReward
+      setHasRunOrValidated(true)
+      if (outcome.ranSandbox) {
+        setOutput(outcome.output)
+        setLastRunCodeHash(outcome.runCodeHash)
+        progress.recordSandboxRun()
       }
-      setShowComplete(true)
-      void taskExp
+      setValidation(outcome.result)
+      if (outcome.result.allPassed) {
+        const willCompleteTask = task.steps.every(
+          (s) => progress.completedSteps.includes(s.id) || s.id === step.id,
+        )
+        progress.completeStep(step.id, task.id, STEP_BASE_EXP)
+        let taskExp = STEP_BASE_EXP
+        if (willCompleteTask && !progress.completedTasks.includes(task.id)) {
+          progress.completeTask(task.id, task.expReward, hintsRevealed > 0)
+          taskExp += task.expReward
+        }
+        setShowComplete(true)
+        void taskExp
+      }
+    } finally {
+      setRunning(false)
     }
   }, [code, step, task, output, progress, hintsRevealed, llmAvailable, inviteRequired, accessCode, setAiConfigModalOpen, lastRunCodeHash, stepNeedsNetwork, sandboxTimeout, sandboxProfile])
 
