@@ -9,20 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import curriculum, sandbox
+from app.services.cloud_guards import extra_routers
 from app.services.curriculum_loader import CurriculumCache
 from app.services.sandbox_runner import get_runner
-
-# 云端邀请码路由(公开库中被 sync 排除,不存在时跳过挂载,默认休眠)
-try:
-    from app.routers import access
-except ImportError:
-    access = None
-
-# 云端试用 Key 代理路由(同上: 公开库排除, 缺省时跳过)
-try:
-    from app.routers import llm
-except ImportError:
-    llm = None
 
 
 @asynccontextmanager
@@ -56,13 +45,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 挂载路由
+# 挂载路由(云端专属 router 经 cloud_guards 单一接缝挂载, 公开库自动跳过)
 app.include_router(curriculum.router)
-if access is not None:  # 云端邀请码路由(公开库无此模块, 跳过)
-    app.include_router(access.router)
-if llm is not None:  # 云端试用 Key 代理路由(公开库无此模块, 跳过)
-    app.include_router(llm.router)
 app.include_router(sandbox.router)
+for _r in extra_routers():
+    app.include_router(_r)
 
 
 @app.get("/")

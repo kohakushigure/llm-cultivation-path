@@ -1,13 +1,6 @@
-import type { ProgressState } from './store'
+import type { AchievementDef, ProgressState } from '@shared/types'
 
-export interface AchievementDef {
-  id: string
-  name: string
-  description: string
-  icon: string
-  expReward: number
-  condition: (progress: ProgressState) => boolean
-}
+export type { AchievementDef }
 
 /** 成就定义(约 15-20 个,初版 8 个核心)。 */
 export const ACHIEVEMENTS: AchievementDef[] = [

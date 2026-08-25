@@ -5,11 +5,8 @@
  * frontend/src/features/progression/store.ts)。
  * 后端预留 /api/progress 接口,数据层抽象好后可接数据库升级多用户。
  *
- * 2026-07-31 对齐: ProgressState / AchievementDef 以前端实际实现为准
- * (frontend/src/features/progression/store.ts + achievements.ts)。
- * 此前 shared 版是早期设计稿(结构化 AchievementCondition、无 stats 等),
- * 与前端真实代码已分叉; 本次重写使 shared 重新成为 single source of truth。
- * 注意: 前端 store 目前仍内联自己的 ProgressState 定义,字段与本文件保持一致。
+ * 2026-08-25 收敛: ProgressState / AchievementDef 双源已消除——前端 store 与
+ * achievements 均直接引用本文件类型, 本文件重新成为名实相符的 single source of truth。
  */
 
 /** 进度 schema 版本(用于 localStorage 迁移) */

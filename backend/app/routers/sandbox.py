@@ -5,24 +5,9 @@ from app.config import settings
 from app.models.sandbox import SandboxRunRequest, SandboxRunResponse, SandboxStatus
 from app.services.sandbox_runner import SandboxConfigurationError, get_runner
 
-# 云端防护(邀请码 403 / IP 限流 429 / sandbox.log 留痕)。
-# access_guard 模块在公开库(纯本地版)中被 sync 排除,不存在时全部放行——
-# 一份代码,云端设了 ACCESS_CODES 才激活,公开/本地默认休眠。
-try:
-    from app.services.access_guard import check_access, check_rate_limit, client_ip, log_run
-except ImportError:  # 公开库: 无防护模块, 直通
-
-    def check_access(request: Request) -> None:
-        return None
-
-    def check_rate_limit(request: Request) -> None:
-        return None
-
-    def client_ip(request: Request) -> str:
-        return "unknown"
-
-    def log_run(request: Request, req: SandboxRunRequest, resp: SandboxRunResponse) -> None:
-        return None
+# 云端防护(邀请码 403 / IP 限流 429 / sandbox.log 留痕)经 cloud_guards 单一接缝:
+# 公开库(本地版)无云端模块时全部 no-op 放行, 云端设了 ACCESS_CODES 才激活。
+from app.services.cloud_guards import check_access, check_rate_limit, client_ip, log_run
 
 
 router = APIRouter(prefix="/api/sandbox", tags=["sandbox"])
@@ -54,7 +39,7 @@ async def sandbox_status() -> SandboxStatus:
     available = runner.is_available()
     return SandboxStatus(
         available=available,
-        image=runner._image,
+        image=runner.image,
         concurrency=runner.concurrency,
         max_concurrency=runner.max_concurrency,
     )

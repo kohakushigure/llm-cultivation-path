@@ -54,8 +54,8 @@ export function TaskWorkspace() {
     if (!course) loadCourse()
   }, [course, loadCourse])
 
-  const chapter = course?.chapters.find((c) => c.id === chapterId)
-  const task = chapter?.tasks.find((t) => t.id === taskId)
+  const chapter = useCourse.getState().getChapter(chapterId ?? '')
+  const task = useCourse.getState().getTask(taskId ?? '')
   const step = task?.steps[currentStep]
   const stepId = step?.id
   const stepNeedsNetwork = step?.needsNetwork ?? task?.needsNetwork ?? false

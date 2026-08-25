@@ -18,7 +18,7 @@ export function ChapterView() {
   if (!course) {
     return <div className="p-8 text-center text-slate-400">加载中...</div>
   }
-  const chapter = course.chapters.find((c) => c.id === chapterId)
+  const chapter = useCourse.getState().getChapter(chapterId ?? '')
   if (!chapter) {
     return <div className="p-8 text-center text-slate-400">章节不存在</div>
   }

@@ -3,37 +3,15 @@ import { persist } from 'zustand/middleware'
 import { checkAchievements } from './achievements'
 import {
   PROGRESS_SCHEMA_VERSION,
-  DraftCode,
   levelFromExp,
   expFloorForLevel,
   expToNextLevel,
   levelProgressPercent,
 } from '@shared/types'
+import type { DraftCode, ProgressState } from '@shared/types'
 
-/** 学习者完整进度状态(本地 localStorage 优先)。 */
-export interface ProgressState {
-  version: number
-  userId: string
-  level: number
-  totalExp: number
-  completedSteps: string[]
-  completedTasks: string[]
-  unlockedChapters: string[]
-  currentStepId: string | null
-  currentTaskId: string | null
-  currentChapterId: string | null
-  draftCode: Record<string, DraftCode>
-  revealedHints: Record<string, number[]>
-  achievements: string[]
-  stats: {
-    tasksCompleted: number
-    perfectTasks: number
-    sandboxRuns: number
-    totalPlayTimeMs: number
-    lastActiveAt: string
-  }
-  updatedAt: string
-}
+// 进度类型单一事实源在 shared/types/progress.ts；此处 re-export 仅为既有调用方兼容。
+export type { ProgressState } from '@shared/types'
 
 const defaultProgress: ProgressState = {
   version: PROGRESS_SCHEMA_VERSION,

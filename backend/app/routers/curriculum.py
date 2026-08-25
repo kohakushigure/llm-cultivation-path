@@ -6,20 +6,8 @@ from app.services.curriculum_loader import CurriculumCache
 from app.services.sandbox_runner import SandboxConfigurationError
 from app.services.step_validator import validate_step_code
 
-# 云端防护(邀请码 403 / IP 限流 429)。access_guard 在公开库中被 sync 排除,
-# 不存在时全部放行——与 sandbox.py 保持一致。
-try:
-    from app.services.access_guard import check_access, check_rate_limit, client_ip
-except ImportError:  # 公开库: 无防护模块, 直通
-
-    def check_access(request: Request) -> None:
-        return None
-
-    def check_rate_limit(request: Request) -> None:
-        return None
-
-    def client_ip(request: Request) -> str:
-        return "unknown"
+# 云端防护(邀请码 403 / IP 限流 429)经 cloud_guards 单一接缝, 公开库直通。
+from app.services.cloud_guards import check_access, check_rate_limit, client_ip
 
 router = APIRouter(prefix="/api", tags=["course"])
 

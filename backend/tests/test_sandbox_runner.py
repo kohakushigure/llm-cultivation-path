@@ -1,7 +1,12 @@
-"""沙箱联网配置与文件系统契约测试。"""
+"""沙箱联网配置与文件系统契约测试。
+
+测试只打公开接口（run / run_pytest / is_available），不打内部实现：
+镜像检查用 is_available 桩掉，docker 执行用假 subprocess.run 观察命令行。
+"""
 
 from __future__ import annotations
 
+import asyncio
 import subprocess
 
 import pytest
@@ -13,16 +18,25 @@ from app.models.sandbox import SandboxRunRequest
 from app.services.sandbox_runner import SandboxConfigurationError, SandboxRunner
 
 
+def _run(runner: SandboxRunner, request: SandboxRunRequest):
+    """经公开接口跑 run(); 镜像检查桩为就绪。"""
+    runner.is_available = lambda *a, **k: True  # type: ignore[method-assign]
+    return asyncio.run(runner.run(request))
+
+
+def _run_pytest(runner: SandboxRunner, request: SandboxRunRequest, test_code: str):
+    runner.is_available = lambda *a, **k: True  # type: ignore[method-assign]
+    return asyncio.run(runner.run_pytest(request, test_code))
+
+
 def test_network_run_requires_user_deepseek_key():
-    runner = SandboxRunner()
     request = SandboxRunRequest(code="print('hello')", needs_network=True)
 
     with pytest.raises(SandboxConfigurationError, match="自己的 DeepSeek API Key"):
-        runner._run_container(request, "")
+        _run(SandboxRunner(), request)
 
 
 def test_network_run_rejects_non_deepseek_endpoint():
-    runner = SandboxRunner()
     request = SandboxRunRequest(
         code="print('hello')",
         needs_network=True,
@@ -34,7 +48,7 @@ def test_network_run_rejects_non_deepseek_endpoint():
     )
 
     with pytest.raises(SandboxConfigurationError, match="DeepSeek 官方接口"):
-        runner._run_container(request, "")
+        _run(SandboxRunner(), request)
 
 
 def test_sandbox_uses_isolated_writable_workspace(monkeypatch: pytest.MonkeyPatch):
@@ -45,8 +59,7 @@ def test_sandbox_uses_isolated_writable_workspace(monkeypatch: pytest.MonkeyPatc
         return subprocess.CompletedProcess(cmd, 0, stdout=b"ok\n", stderr=b"")
 
     monkeypatch.setattr("app.services.sandbox_runner.subprocess.run", fake_run)
-    runner = SandboxRunner()
-    result = runner._run_container(SandboxRunRequest(code="print('ok')"), "")
+    result = _run(SandboxRunner(), SandboxRunRequest(code="print('ok')"))
 
     assert result.exit_code == 0
     assert result.stdout == "ok\n"
@@ -63,8 +76,8 @@ def test_network_run_passes_only_user_deepseek_configuration(monkeypatch: pytest
         return subprocess.CompletedProcess(cmd, 0, stdout=b"ok\n", stderr=b"")
 
     monkeypatch.setattr("app.services.sandbox_runner.subprocess.run", fake_run)
-    runner = SandboxRunner()
-    runner._run_container(
+    _run(
+        SandboxRunner(),
         SandboxRunRequest(
             code="print('ok')",
             needs_network=True,
@@ -75,7 +88,6 @@ def test_network_run_passes_only_user_deepseek_configuration(monkeypatch: pytest
                 "UNRELATED_VALUE": "must-not-reach-container",
             },
         ),
-        "",
     )
 
     assert "OPENAI_API_KEY=sk-user-key" in seen
@@ -123,10 +135,10 @@ def test_pytest_validation_uses_isolated_workspace(monkeypatch: pytest.MonkeyPat
         return subprocess.CompletedProcess(cmd, 0, stdout=b"1 passed\n", stderr=b"")
 
     monkeypatch.setattr("app.services.sandbox_runner.subprocess.run", fake_run)
-    result = SandboxRunner()._run_pytest_container(
+    result = _run_pytest(
+        SandboxRunner(),
         SandboxRunRequest(code="def add(a, b): return a + b"),
         "from student_submission import add\ndef test_add(): assert add(1, 2) == 3\n",
-        "",
     )
 
     assert result.exit_code == 0
