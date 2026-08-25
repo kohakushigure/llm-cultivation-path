@@ -172,3 +172,80 @@ def test_sandbox_request_allows_documented_extended_step_timeout():
     request = SandboxRunRequest(code="print('ok')", timeout=120)
 
     assert request.timeout == 120
+
+
+def test_non_network_run_passes_env_through_unchanged(monkeypatch: pytest.MonkeyPatch):
+    """非联网步骤：调用方 env 原样透传进容器。"""
+    seen: list[str] = []
+
+    def fake_run(cmd, **_kwargs):
+        seen.extend(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout=b"ok\n", stderr=b"")
+
+    monkeypatch.setattr("app.services.sandbox_runner.subprocess.run", fake_run)
+    _run(SandboxRunner(), SandboxRunRequest(code="print(1)", env={"FOO": "bar"}))
+
+    assert "FOO=bar" in seen
+    assert "--network=none" in seen
+
+
+def test_timeout_marks_timed_out_and_cleans_up_container(monkeypatch: pytest.MonkeyPatch):
+    """超时 → timed_out=True，并兜底 docker rm -f 清理容器。"""
+    cmds: list[list[str]] = []
+
+    def fake_run(cmd, **kwargs):
+        cmds.append(cmd)
+        if len(cmd) > 1 and cmd[1] == "run":
+            raise subprocess.TimeoutExpired(cmd, 1)
+        return subprocess.CompletedProcess(cmd, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr("app.services.sandbox_runner.subprocess.run", fake_run)
+    result = _run(SandboxRunner(), SandboxRunRequest(code="print(1)", timeout=1))
+
+    assert result.timed_out is True
+    assert result.exit_code == -1
+    cleanup = [c for c in cmds if len(c) > 1 and c[1] == "rm"]
+    assert len(cleanup) == 1 and "-f" in cleanup[0]
+
+
+def test_ml_profile_uses_ml_image(monkeypatch: pytest.MonkeyPatch):
+    """ml 档走 ml 镜像：is_available 的检查目标与执行用镜像是同一个。"""
+    from app.config import settings
+
+    seen: list[str] = []
+
+    def fake_run(cmd, **_kwargs):
+        seen.extend(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr("app.services.sandbox_runner.subprocess.run", fake_run)
+    _run(SandboxRunner(), SandboxRunRequest(code="print(1)", sandbox_profile="ml"))
+    assert settings.sandbox_ml_image in seen
+
+    # is_available 的真实路径：ml 档 inspect 的也必须是 ml 镜像
+    seen.clear()
+    runner = SandboxRunner()
+    assert runner.is_available("ml") is True
+    assert "inspect" in seen and settings.sandbox_ml_image in seen
+
+
+def test_trial_quota_env_issued_when_no_key_and_enabled(monkeypatch: pytest.MonkeyPatch):
+    """联网步骤无私人 Key 且试用额度开启：注入临时令牌而非真 Key。"""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "llm_proxy_enabled", True)
+    monkeypatch.setattr(settings, "llm_shared_api_key", "sk-real-key-must-not-leak")
+    seen: list[str] = []
+
+    def fake_run(cmd, **_kwargs):
+        seen.extend(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr("app.services.sandbox_runner.subprocess.run", fake_run)
+    _run(SandboxRunner(), SandboxRunRequest(code="print(1)", needs_network=True))
+
+    env_entries = [s for s in seen if "=" in s]
+    assert any(s.startswith("OPENAI_API_KEY=") for s in env_entries)
+    assert not any("sk-real-key-must-not-leak" in s for s in env_entries)
+    assert f"OPENAI_BASE_URL={settings.llm_proxy_container_url}" in env_entries
+    assert f"MODEL_NAME={settings.llm_shared_model}" in env_entries
