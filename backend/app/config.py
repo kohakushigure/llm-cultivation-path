@@ -53,6 +53,31 @@ class Settings(BaseSettings):
     openai_base_url: str = "https://api.deepseek.com"
     generator_model: str = "deepseek-v4-pro"
 
+    # === 共享 LLM 代理(云端内嵌 Key + 按 IP token 限流) ===
+    # 开启后联网课程不强制学习者自带 Key: 后端用共享 Key 经代理转发,
+    # 学习者代码只拿到临时令牌(绑定 IP/有效期/单次运行额度), 见 services/llm_proxy.py。
+    # 默认关闭; 服务器 .env 设 LLM_PROXY_ENABLED=true + LLM_SHARED_API_KEY 激活。
+    llm_proxy_enabled: bool = False
+    # 共享 Key(服务器 .env 唯一真源, 不给公开仓/投放包)
+    llm_shared_api_key: str = ""
+    # 共享模式强制模型
+    llm_shared_model: str = "deepseek-v4-flash"
+    # 沙箱容器内可达的代理地址(host-gateway 映射宿主机)
+    llm_proxy_container_url: str = "http://host.docker.internal:4200/api/llm/v1"
+    # 上游真实端点(转发目标)
+    llm_upstream_base_url: str = "https://api.deepseek.com"
+    # 滑动窗口(秒) + 每 IP 每窗口 token 上限(输入+输出)
+    llm_token_window_seconds: int = 3600
+    llm_token_budget_per_ip: int = 200_000
+    # 单次沙箱运行 token 上限(临时令牌额度)
+    llm_token_budget_per_run: int = 50_000
+    # 全局每小时 token 上限
+    llm_token_budget_global: int = 20_000_000
+    # 每小时最多独立 IP 数
+    llm_max_distinct_ips_per_hour: int = 100
+    # 临时令牌有效期(秒)
+    llm_token_ttl_seconds: int = 1800
+
     @property
     def cors_origins_list(self) -> list[str]:
         """CORS 来源按逗号拆分。"""

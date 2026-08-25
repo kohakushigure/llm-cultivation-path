@@ -18,6 +18,12 @@ try:
 except ImportError:
     access = None
 
+# 云端试用 Key 代理路由(同上: 公开库排除, 缺省时跳过)
+try:
+    from app.routers import llm
+except ImportError:
+    llm = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -54,6 +60,8 @@ app.add_middleware(
 app.include_router(curriculum.router)
 if access is not None:  # 云端邀请码路由(公开库无此模块, 跳过)
     app.include_router(access.router)
+if llm is not None:  # 云端试用 Key 代理路由(公开库无此模块, 跳过)
+    app.include_router(llm.router)
 app.include_router(sandbox.router)
 
 

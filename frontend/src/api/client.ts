@@ -42,6 +42,17 @@ export const api = {
 
   accessStatus: () => fetchJson<{ inviteRequired: boolean }>('/api/access/status'),
 
+  llmStatus: () =>
+    fetchJson<{
+      enabled: boolean
+      sharedModel?: string
+      budgetPerIp?: number
+      budgetPerRun?: number
+      budgetGlobal?: number
+      windowSeconds?: number
+      maxDistinctIpsPerHour?: number
+    }>('/api/llm/status'),
+
   verifyAccess: (accessCode: string) =>
     fetchJson<{ ok: boolean }>('/api/access/verify', {
       method: 'POST',

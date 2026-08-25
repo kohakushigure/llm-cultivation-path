@@ -21,6 +21,12 @@ from fastapi import HTTPException
 from app.config import settings
 from app.models.sandbox import SandboxRunRequest, SandboxRunResponse
 
+# 云端试用 Key 代理(公开库中被 sync 排除; 缺省时试用额度模式不可用)
+try:
+    from app.services import llm_proxy
+except ImportError:
+    llm_proxy = None
+
 
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
@@ -52,7 +58,30 @@ class SandboxRunner:
         """当前正在执行的沙箱数(信号量已占用槽位)。"""
         return settings.sandbox_max_concurrency - self._sem._value
 
-    async def run(self, req: SandboxRunRequest) -> SandboxRunResponse:
+    def _build_network_env(self, req: SandboxRunRequest, client_ip: str) -> dict[str, str]:
+        """联网课程 env 构造: 自备 Key 直连 DeepSeek; 否则共享模式走代理(临时令牌)。"""
+        env = dict(req.env or {})
+        api_key = env.get("OPENAI_API_KEY", "").strip()
+        if api_key:
+            # 自备 Key 模式: 校验 + 直连 DeepSeek(花学习者自己的钱, 不限流)
+            model = env.get("MODEL_NAME", "").strip() or settings.generator_model
+            if not model.startswith("deepseek-"):
+                raise SandboxConfigurationError("联网课程的模型名必须是 DeepSeek 模型")
+            return {
+                "OPENAI_API_KEY": api_key,
+                "OPENAI_BASE_URL": _normalize_deepseek_base_url(
+                    env.get("OPENAI_BASE_URL", DEEPSEEK_BASE_URL)
+                ),
+                "MODEL_NAME": model,
+            }
+        # 试用额度模式: 后端内嵌 Key 走代理, 注入临时令牌(学习者拿不到真 Key)
+        if llm_proxy is None or not llm_proxy.enabled():
+            raise SandboxConfigurationError(
+                "联网课程需要 API Key: 站点共享额度未启用, 请在 AI 配置中输入你自己的 DeepSeek API Key"
+            )
+        return llm_proxy.issue_shared_env(client_ip)
+
+    async def run(self, req: SandboxRunRequest, client_ip: str = "") -> SandboxRunResponse:
         if not self.is_available(req.sandbox_profile):
             image = settings.sandbox_ml_image if req.sandbox_profile == "ml" else self._image
             raise SandboxConfigurationError(f"{req.sandbox_profile} 教学沙箱镜像未就绪：{image}")
@@ -62,11 +91,11 @@ class SandboxRunner:
         except asyncio.TimeoutError:
             raise HTTPException(503, f"沙箱繁忙: 排队超过 {settings.sandbox_queue_timeout} 秒, 请稍后重试") from None
         try:
-            return await asyncio.to_thread(self._run_container, req)
+            return await asyncio.to_thread(self._run_container, req, client_ip)
         finally:
             self._sem.release()
 
-    async def run_pytest(self, req: SandboxRunRequest, test_code: str) -> SandboxRunResponse:
+    async def run_pytest(self, req: SandboxRunRequest, test_code: str, client_ip: str = "") -> SandboxRunResponse:
         """Run trusted pytest against student code in an isolated per-run workspace."""
         if not self.is_available(req.sandbox_profile):
             image = settings.sandbox_ml_image if req.sandbox_profile == "ml" else self._image
@@ -76,27 +105,13 @@ class SandboxRunner:
         except asyncio.TimeoutError:
             raise HTTPException(503, f"沙箱繁忙: 排队超过 {settings.sandbox_queue_timeout} 秒, 请稍后重试") from None
         try:
-            return await asyncio.to_thread(self._run_pytest_container, req, test_code)
+            return await asyncio.to_thread(self._run_pytest_container, req, test_code, client_ip)
         finally:
             self._sem.release()
 
-    def _run_container(self, req: SandboxRunRequest) -> SandboxRunResponse:
+    def _run_container(self, req: SandboxRunRequest, client_ip: str) -> SandboxRunResponse:
         start = time.time()
-        env = dict(req.env or {})
-        if req.needs_network:
-            api_key = env.get("OPENAI_API_KEY", "").strip()
-            if not api_key:
-                raise SandboxConfigurationError("联网课程必须在 AI 配置中输入你自己的 DeepSeek API Key")
-            model = env.get("MODEL_NAME", "").strip() or settings.generator_model
-            if not model.startswith("deepseek-"):
-                raise SandboxConfigurationError("联网课程的模型名必须是 DeepSeek 模型")
-            env = {
-                "OPENAI_API_KEY": api_key,
-                "OPENAI_BASE_URL": _normalize_deepseek_base_url(
-                    env.get("OPENAI_BASE_URL", DEEPSEEK_BASE_URL)
-                ),
-                "MODEL_NAME": model,
-            }
+        env = self._build_network_env(req, client_ip) if req.needs_network else dict(req.env or {})
         image = settings.sandbox_ml_image if req.sandbox_profile == "ml" else self._image
         container_name = f"llmquest-sandbox-{uuid.uuid4().hex[:12]}"
         cmd = [
@@ -118,6 +133,9 @@ class SandboxRunner:
             "-e", "XDG_CACHE_HOME=/tmp",
             "-e", "XDG_CONFIG_HOME=/tmp",
         ]
+        if req.needs_network:
+            # 共享模式经 host-gateway 回宿主机代理; 自备 Key 模式加此项也无副作用
+            cmd.extend(["--add-host=host.docker.internal:host-gateway"])
         for k, v in env.items():
             cmd.extend(["-e", f"{k}={v}"])
         cmd.extend([
@@ -162,26 +180,14 @@ class SandboxRunner:
                 error=str(e),
             )
 
-    def _run_pytest_container(self, req: SandboxRunRequest, test_code: str) -> SandboxRunResponse:
+    def _run_pytest_container(self, req: SandboxRunRequest, test_code: str, client_ip: str) -> SandboxRunResponse:
         """Materialize source and trusted tests inside /workspace, then invoke pytest.
 
         The test source is read only from the server's curriculum directory. Base64 prevents
         shell interpolation and keeps student code from becoming a command argument.
         """
         start = time.time()
-        env = dict(req.env or {})
-        if req.needs_network:
-            api_key = env.get("OPENAI_API_KEY", "").strip()
-            if not api_key:
-                raise SandboxConfigurationError("联网课程必须在 AI 配置中输入你自己的 DeepSeek API Key")
-            model = env.get("MODEL_NAME", "").strip() or settings.generator_model
-            if not model.startswith("deepseek-"):
-                raise SandboxConfigurationError("联网课程的模型名必须是 DeepSeek 模型")
-            env = {
-                "OPENAI_API_KEY": api_key,
-                "OPENAI_BASE_URL": _normalize_deepseek_base_url(env.get("OPENAI_BASE_URL", DEEPSEEK_BASE_URL)),
-                "MODEL_NAME": model,
-            }
+        env = self._build_network_env(req, client_ip) if req.needs_network else dict(req.env or {})
         env["LEARNER_CODE_B64"] = base64.b64encode(req.code.encode("utf-8")).decode("ascii")
         env["STEP_TEST_B64"] = base64.b64encode(test_code.encode("utf-8")).decode("ascii")
         container_name = f"llmquest-pytest-{uuid.uuid4().hex[:12]}"
@@ -193,6 +199,8 @@ class SandboxRunner:
             "--security-opt=no-new-privileges", "--user=runner", "--pids-limit=64",
             "-e", "HOME=/workspace", "-e", "XDG_CACHE_HOME=/tmp", "-e", "XDG_CONFIG_HOME=/tmp",
         ]
+        if req.needs_network:
+            cmd.extend(["--add-host=host.docker.internal:host-gateway"])
         for key, value in env.items():
             cmd.extend(["-e", f"{key}={value}"])
         setup = (

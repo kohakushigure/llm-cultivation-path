@@ -1,10 +1,25 @@
 """课程数据查询 API。"""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app.models.sandbox import StepValidationRequest, StepValidationResponse
 from app.services.curriculum_loader import CurriculumCache
 from app.services.sandbox_runner import SandboxConfigurationError
 from app.services.step_validator import validate_step_code
+
+# 云端防护(邀请码 403 / IP 限流 429)。access_guard 在公开库中被 sync 排除,
+# 不存在时全部放行——与 sandbox.py 保持一致。
+try:
+    from app.services.access_guard import check_access, check_rate_limit, client_ip
+except ImportError:  # 公开库: 无防护模块, 直通
+
+    def check_access(request: Request) -> None:
+        return None
+
+    def check_rate_limit(request: Request) -> None:
+        return None
+
+    def client_ip(request: Request) -> str:
+        return "unknown"
 
 router = APIRouter(prefix="/api", tags=["course"])
 
@@ -54,10 +69,12 @@ async def get_solution(task_id: str, stepId: str | None = None):
 
 
 @router.post("/task/{task_id}/step/{step_id}/validate")
-async def validate_step(task_id: str, step_id: str, req: StepValidationRequest) -> StepValidationResponse:
+async def validate_step(task_id: str, step_id: str, req: StepValidationRequest, request: Request) -> StepValidationResponse:
     """Run the server-owned pytest file for this exact curriculum step."""
+    check_access(request)
+    check_rate_limit(request)
     try:
-        output = await validate_step_code(task_id, step_id, req.code, req.env)
+        output = await validate_step_code(task_id, step_id, req.code, req.env, client_ip(request))
     except SandboxConfigurationError as exc:
         raise HTTPException(400, str(exc)) from exc
     return StepValidationResponse(step_id=step_id, passed=output.exit_code == 0 and not output.timed_out, output=output)

@@ -12,7 +12,7 @@ interface AiConfigModalProps {
 
 /** 云端覆盖层与主树保持相同的 DeepSeek 系统配置门禁。 */
 export function AiConfigModal({ open, onClose, required = false, inviteRequired = false }: AiConfigModalProps) {
-  const { apiKey, baseUrl, model, accessCode, setConfig } = useAiConfig()
+  const { apiKey, baseUrl, model, accessCode, llmShared, setConfig } = useAiConfig()
   const [draftKey, setDraftKey] = useState(apiKey)
   const [draftUrl, setDraftUrl] = useState(baseUrl)
   const [draftModel, setDraftModel] = useState(model)
@@ -22,6 +22,9 @@ export function AiConfigModal({ open, onClose, required = false, inviteRequired 
   const [copied, setCopied] = useState(false)
   const [formError, setFormError] = useState('')
   const [verifying, setVerifying] = useState(false)
+
+  const sharedEnabled = Boolean(llmShared?.enabled)
+  const usingShared = sharedEnabled && !draftKey.trim()
 
   useEffect(() => {
     if (open) {
@@ -38,11 +41,11 @@ export function AiConfigModal({ open, onClose, required = false, inviteRequired 
     const apiKey = draftKey.trim()
     const modelName = draftModel.trim()
     const code = draftAccessCode.trim()
-    if (!apiKey) {
-      setFormError('联网课程必须输入你自己的 DeepSeek API Key。')
+    if (!apiKey && !sharedEnabled) {
+      setFormError('站点未开启共享额度，请输入你自己的 DeepSeek API Key。')
       return
     }
-    if (!modelName.startsWith('deepseek-')) {
+    if (apiKey && !modelName.startsWith('deepseek-')) {
       setFormError('模型名必须是 DeepSeek 模型，例如 deepseek-v4-pro。')
       return
     }
@@ -81,14 +84,32 @@ export function AiConfigModal({ open, onClose, required = false, inviteRequired 
       title={required ? '⚙️ 首次系统配置（开始使用前必填）' : '⚙️ DeepSeek 系统配置'}
     >
       <p className="mb-4 text-sm text-slate-500">
-        网站与联网课程会使用你自己的 Key 调用 DeepSeek。Key 只保存在当前浏览器，运行时临时传入沙箱，不保存到服务器。
-        <br />
-        <span className="text-amber-600">未填写 Key 不能运行或验证联网课程。</span>
+        {sharedEnabled ? (
+          <>
+            联网课程默认使用<strong className="text-slate-700">站点共享额度</strong>，无需自己的 Key，按 IP 限流。
+            <br />
+            <span className="text-emerald-600">下方 Key 留空即可使用共享额度；填入自己的 Key 则无额度限制。</span>
+          </>
+        ) : (
+          <>
+            网站与联网课程会使用你自己的 Key 调用 DeepSeek。Key 只保存在当前浏览器，运行时临时传入沙箱，不保存到服务器。
+          </>
+        )}
       </p>
+
+      {sharedEnabled && llmShared && (
+        <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+          共享额度：模型 <code className="font-mono">{llmShared.sharedModel || 'deepseek-v4-flash'}</code>
+          {llmShared.budgetPerIp ? (
+            <>，每 IP 每小时 {Math.round(llmShared.budgetPerIp / 10000)} 万 token</>
+          ) : null}
+          ，单次运行 {llmShared.budgetPerRun ? Math.round(llmShared.budgetPerRun / 10000) : '—'} 万 token 上限。
+        </div>
+      )}
 
       <div className="mb-3">
         <div className="mb-1 flex items-center justify-between">
-          <label className="panel-title">API Key</label>
+          <label className="panel-title">API Key（可选）</label>
           {draftKey.trim() && (
             <button
               onClick={handleCopyKey}
@@ -106,7 +127,7 @@ export function AiConfigModal({ open, onClose, required = false, inviteRequired 
               setDraftKey(e.target.value)
               setFormError('')
             }}
-            placeholder="sk-..."
+            placeholder={sharedEnabled ? '留空 = 使用站点共享额度' : 'sk-...'}
             className="input w-full pr-16 font-mono"
             autoComplete="off"
             spellCheck={false}
@@ -118,6 +139,11 @@ export function AiConfigModal({ open, onClose, required = false, inviteRequired 
             {showKey ? '隐藏' : '显示'}
           </button>
         </div>
+        {sharedEnabled && (
+          <p className="mt-1 text-xs text-slate-400">
+            共享额度按 IP 滑动窗口限流，超出后提示「繁忙 / 额度用尽」；自带 Key 则直连 DeepSeek 不受限。
+          </p>
+        )}
       </div>
 
       <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
@@ -125,7 +151,7 @@ export function AiConfigModal({ open, onClose, required = false, inviteRequired 
       </div>
 
       <div className="mb-4">
-        <label className="panel-title mb-1 block">模型名</label>
+        <label className="panel-title mb-1 block">模型名（仅自带 Key 时生效）</label>
         <input
           type="text"
           value={draftModel}
@@ -138,7 +164,9 @@ export function AiConfigModal({ open, onClose, required = false, inviteRequired 
           spellCheck={false}
         />
         <p className="mt-1 text-xs text-slate-400">
-          使用你的 DeepSeek 账户当前可用模型，例如 <code className="rounded bg-slate-100 px-1 text-brand-700">deepseek-v4-pro</code>。
+          {usingShared
+            ? '当前使用共享额度，模型由服务器统一指定。'
+            : '使用你的 DeepSeek 账户当前可用模型，例如 deepseek-v4-pro。'}
         </p>
       </div>
 
@@ -158,7 +186,7 @@ export function AiConfigModal({ open, onClose, required = false, inviteRequired 
             spellCheck={false}
           />
           <p className="mt-1 text-xs text-slate-400">
-            当前云端服务器已启用邀请码；未通过验证不能进入网站。
+            当前云端服务器已启用邀请码；未通过验证不能运行课程。
           </p>
         </div>
       )}
@@ -166,9 +194,14 @@ export function AiConfigModal({ open, onClose, required = false, inviteRequired 
       {formError && <p className="mb-3 text-sm text-red-600">{formError}</p>}
 
       <div className="flex items-center justify-between">
-        <Badge color={draftKey.trim() ? 'green' : 'amber'}>
-          {draftKey.trim() && (!inviteRequired || draftAccessCode.trim()) ? '待验证系统配置' :
-            inviteRequired ? '必须填写 Key 与邀请码' : '必须填写 Key'}
+        <Badge color={usingShared ? 'green' : draftKey.trim() ? 'green' : 'amber'}>
+          {usingShared
+            ? '站点共享额度'
+            : draftKey.trim()
+              ? '自带 Key（无额度限制）'
+              : sharedEnabled
+                ? '共享额度（Key 留空）'
+                : '必须填写 Key'}
         </Badge>
         <div className="flex gap-2">
           {!required && (
@@ -177,7 +210,7 @@ export function AiConfigModal({ open, onClose, required = false, inviteRequired 
             </Button>
           )}
           <Button onClick={() => void handleSave()} disabled={verifying}>
-            {verifying ? '验证中...' : saved ? '已保存 ✓' : '验证并保存'}
+            {verifying ? '验证中...' : saved ? '已保存 ✓' : '保存'}
           </Button>
         </div>
       </div>

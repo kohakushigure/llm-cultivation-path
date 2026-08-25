@@ -18,6 +18,7 @@ export function AppLayout() {
   const setModalOpen = useAiConfig((s) => s.setModalOpen)
   const inviteRequired = useAiConfig((s) => s.inviteRequired)
   const setInviteRequired = useAiConfig((s) => s.setInviteRequired)
+  const setLlmShared = useAiConfig((s) => s.setLlmShared)
   const hasSystemConfig = useHasSystemConfig()
 
   useEffect(() => {
@@ -25,6 +26,14 @@ export function AppLayout() {
       .then(({ inviteRequired: required }) => setInviteRequired(required))
       .catch(() => setInviteRequired(false))
   }, [setInviteRequired])
+
+  // 试用额度探活: 云端开启时无私人 Key 的学习者也可运行联网内容;
+  // 路由不存在(公开库/本地版)或探活失败 → null = 试用额度关闭
+  useEffect(() => {
+    void api.llmStatus()
+      .then((status) => setLlmShared(status))
+      .catch(() => setLlmShared(null))
+  }, [setLlmShared])
 
   return <div className="flex min-h-screen flex-col">
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 backdrop-blur-md">

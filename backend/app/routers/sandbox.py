@@ -9,7 +9,7 @@ from app.services.sandbox_runner import SandboxConfigurationError, get_runner
 # access_guard 模块在公开库(纯本地版)中被 sync 排除,不存在时全部放行——
 # 一份代码,云端设了 ACCESS_CODES 才激活,公开/本地默认休眠。
 try:
-    from app.services.access_guard import check_access, check_rate_limit, log_run
+    from app.services.access_guard import check_access, check_rate_limit, client_ip, log_run
 except ImportError:  # 公开库: 无防护模块, 直通
 
     def check_access(request: Request) -> None:
@@ -17,6 +17,9 @@ except ImportError:  # 公开库: 无防护模块, 直通
 
     def check_rate_limit(request: Request) -> None:
         return None
+
+    def client_ip(request: Request) -> str:
+        return "unknown"
 
     def log_run(request: Request, req: SandboxRunRequest, resp: SandboxRunResponse) -> None:
         return None
@@ -37,7 +40,7 @@ async def run_code(req: SandboxRunRequest, request: Request) -> SandboxRunRespon
         command = "pnpm build:sandbox:ml" if req.sandbox_profile == "ml" else "pnpm build:sandbox"
         raise HTTPException(503, f"{req.sandbox_profile} 沙箱镜像未就绪, 请先运行 {command}")
     try:
-        resp = await runner.run(req)
+        resp = await runner.run(req, client_ip(request))
     except SandboxConfigurationError as exc:
         raise HTTPException(400, str(exc)) from exc
     log_run(request, req, resp)

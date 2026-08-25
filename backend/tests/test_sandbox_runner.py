@@ -18,7 +18,7 @@ def test_network_run_requires_user_deepseek_key():
     request = SandboxRunRequest(code="print('hello')", needs_network=True)
 
     with pytest.raises(SandboxConfigurationError, match="自己的 DeepSeek API Key"):
-        runner._run_container(request)
+        runner._run_container(request, "")
 
 
 def test_network_run_rejects_non_deepseek_endpoint():
@@ -34,7 +34,7 @@ def test_network_run_rejects_non_deepseek_endpoint():
     )
 
     with pytest.raises(SandboxConfigurationError, match="DeepSeek 官方接口"):
-        runner._run_container(request)
+        runner._run_container(request, "")
 
 
 def test_sandbox_uses_isolated_writable_workspace(monkeypatch: pytest.MonkeyPatch):
@@ -46,7 +46,7 @@ def test_sandbox_uses_isolated_writable_workspace(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr("app.services.sandbox_runner.subprocess.run", fake_run)
     runner = SandboxRunner()
-    result = runner._run_container(SandboxRunRequest(code="print('ok')"))
+    result = runner._run_container(SandboxRunRequest(code="print('ok')"), "")
 
     assert result.exit_code == 0
     assert result.stdout == "ok\n"
@@ -74,7 +74,8 @@ def test_network_run_passes_only_user_deepseek_configuration(monkeypatch: pytest
                 "MODEL_NAME": "deepseek-v4-pro",
                 "UNRELATED_VALUE": "must-not-reach-container",
             },
-        )
+        ),
+        "",
     )
 
     assert "OPENAI_API_KEY=sk-user-key" in seen
@@ -88,7 +89,7 @@ def test_sandbox_api_returns_clear_error_for_missing_network_key(monkeypatch: py
         def is_available(self, _profile: str = "core") -> bool:
             return True
 
-        async def run(self, _request):
+        async def run(self, _request, _client_ip=""):
             raise SandboxConfigurationError("联网课程必须在 AI 配置中输入你自己的 DeepSeek API Key")
 
     monkeypatch.setattr("app.routers.sandbox.get_runner", lambda: RejectingRunner())
@@ -125,6 +126,7 @@ def test_pytest_validation_uses_isolated_workspace(monkeypatch: pytest.MonkeyPat
     result = SandboxRunner()._run_pytest_container(
         SandboxRunRequest(code="def add(a, b): return a + b"),
         "from student_submission import add\ndef test_add(): assert add(1, 2) == 3\n",
+        "",
     )
 
     assert result.exit_code == 0

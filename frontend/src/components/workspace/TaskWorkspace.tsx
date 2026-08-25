@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useCourse } from '@/features/course/store'
 import { useProgress } from '@/features/progression/store'
 import { ACHIEVEMENTS } from '@/features/progression/achievements'
-import { DEFAULT_BASE_URL, useAiConfig } from '@/features/aiConfig/store'
+import { useAiConfig, useHasLlmAvailable } from '@/features/aiConfig/store'
 import { api } from '@/api/client'
 import { validateStep, stepNeedsSandboxRun } from '@/utils/validator'
 import { strHash } from '@/utils/hash'
@@ -45,10 +45,9 @@ export function TaskWorkspace() {
   const [hasRunOrValidated, setHasRunOrValidated] = useState(false)
   const [hintsRevealed, setHintsRevealed] = useState(0)
   const [lastRunCodeHash, setLastRunCodeHash] = useState<string | undefined>()
-  const hasDeepSeekConfig = useAiConfig((s) => {
-    const baseUrl = s.baseUrl.trim().replace(/\/+$/, '')
-    return Boolean(s.apiKey.trim()) && baseUrl === DEFAULT_BASE_URL && s.model.trim().startsWith('deepseek-')
-  })
+  const llmAvailable = useHasLlmAvailable()
+  const inviteRequired = useAiConfig((s) => s.inviteRequired)
+  const accessCode = useAiConfig((s) => s.accessCode)
   const setAiConfigModalOpen = useAiConfig((s) => s.setModalOpen)
 
   useEffect(() => {
@@ -63,13 +62,13 @@ export function TaskWorkspace() {
   const sandboxTimeout = step?.sandboxTimeout ?? (stepNeedsNetwork ? 30 : 10)
   const sandboxProfile = step?.sandboxProfile ?? 'core'
 
-  // 首次进入联网任务且未配置自己的 API key 时, 自动弹出强制配置引导。
+  // 首次进入任务且缺额度来源(无 Key 且无共享额度)或缺邀请码时, 自动弹出配置引导。
   useEffect(() => {
     if (!task) return
-    if (stepNeedsNetwork && !hasDeepSeekConfig) {
+    if ((stepNeedsNetwork && !llmAvailable) || (inviteRequired && !accessCode.trim())) {
       setAiConfigModalOpen(true)
     }
-  }, [taskId, stepId, stepNeedsNetwork, hasDeepSeekConfig, setAiConfigModalOpen])
+  }, [taskId, stepId, stepNeedsNetwork, llmAvailable, inviteRequired, accessCode, setAiConfigModalOpen])
 
   // 切换 step 时加载草稿/初始代码
   useEffect(() => {
@@ -104,10 +103,21 @@ export function TaskWorkspace() {
 
   const handleRun = useCallback(async () => {
     if (!step || !task) return
-    if (stepNeedsNetwork && !hasDeepSeekConfig) {
+    if (stepNeedsNetwork && !llmAvailable) {
       setOutput({
         stdout: '',
-        stderr: '联网课程必须先在右上角 DeepSeek 配置中输入你自己的 API Key。',
+        stderr: '联网课程需要 API Key 或站点共享额度。请点击右上角齿轮配置。',
+        exitCode: -1,
+        durationMs: 0,
+        timedOut: false,
+      })
+      setAiConfigModalOpen(true)
+      return
+    }
+    if (inviteRequired && !accessCode.trim()) {
+      setOutput({
+        stdout: '',
+        stderr: '当前服务器需要邀请码，请点击右上角齿轮填写。',
         exitCode: -1,
         durationMs: 0,
         timedOut: false,
@@ -142,14 +152,25 @@ export function TaskWorkspace() {
     } finally {
       setRunning(false)
     }
-  }, [code, step, task, progress, hasDeepSeekConfig, setAiConfigModalOpen, stepNeedsNetwork, sandboxTimeout, sandboxProfile])
+  }, [code, step, task, progress, llmAvailable, inviteRequired, accessCode, setAiConfigModalOpen, stepNeedsNetwork, sandboxTimeout, sandboxProfile])
 
   const handleValidate = useCallback(async () => {
     if (!step || !task) return
-    if (stepNeedsNetwork && !hasDeepSeekConfig) {
+    if (stepNeedsNetwork && !llmAvailable) {
       setOutput({
         stdout: '',
-        stderr: '联网课程必须先在右上角 DeepSeek 配置中输入你自己的 API Key。',
+        stderr: '联网课程需要 API Key 或站点共享额度。请点击右上角齿轮配置。',
+        exitCode: -1,
+        durationMs: 0,
+        timedOut: false,
+      })
+      setAiConfigModalOpen(true)
+      return
+    }
+    if (inviteRequired && !accessCode.trim()) {
+      setOutput({
+        stdout: '',
+        stderr: '当前服务器需要邀请码，请点击右上角齿轮填写。',
         exitCode: -1,
         durationMs: 0,
         timedOut: false,
@@ -248,7 +269,7 @@ export function TaskWorkspace() {
       setShowComplete(true)
       void taskExp
     }
-  }, [code, step, task, output, progress, hintsRevealed, hasDeepSeekConfig, setAiConfigModalOpen, lastRunCodeHash, stepNeedsNetwork, sandboxTimeout, sandboxProfile])
+  }, [code, step, task, output, progress, hintsRevealed, llmAvailable, inviteRequired, accessCode, setAiConfigModalOpen, lastRunCodeHash, stepNeedsNetwork, sandboxTimeout, sandboxProfile])
 
   const handleNext = () => {
     setShowComplete(false)
@@ -332,11 +353,11 @@ export function TaskWorkspace() {
               </Button>
             </div>
           </div>
-          {stepNeedsNetwork && !hasDeepSeekConfig && (
+          {stepNeedsNetwork && !llmAvailable ? (
             <div className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              本任务需要真实 DeepSeek 调用。请先点击右上角齿轮输入你自己的 API Key。
+              本任务需要真实 DeepSeek 调用。点击右上角齿轮即可使用站点共享额度（无需自己的 Key），或填入自己的 Key。
             </div>
-          )}
+          ) : null}
           <div className="flex-1 overflow-hidden border-b border-slate-200">
             <CodeEditor value={code} onChange={setCode} />
           </div>

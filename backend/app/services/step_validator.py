@@ -25,7 +25,7 @@ def get_step_for_validation(task_id: str, step_id: str) -> tuple[Task, Step, Pat
     return task, step, test_path
 
 
-async def validate_step_code(task_id: str, step_id: str, code: str, env: dict[str, str] | None) -> SandboxRunResponse:
+async def validate_step_code(task_id: str, step_id: str, code: str, env: dict[str, str] | None, client_ip: str = "") -> SandboxRunResponse:
     task, step, test_path = get_step_for_validation(task_id, step_id)
     test_code = test_path.read_text(encoding="utf-8")
     needs_network = step.needs_network if step.needs_network is not None else task.needs_network
@@ -37,4 +37,4 @@ async def validate_step_code(task_id: str, step_id: str, code: str, env: dict[st
         env=env if needs_network else None,
         sandbox_profile=step.sandbox_profile,
     )
-    return await get_runner().run_pytest(request, test_code)
+    return await get_runner().run_pytest(request, test_code, client_ip)
