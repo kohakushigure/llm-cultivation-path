@@ -6,12 +6,75 @@ import { TechReferenceGroup } from '@/components/TechReference'
 import { useCourse } from '@/features/course/store'
 import { TECH_GROUPS } from '@/data/techKB'
 import beginnerMd from '@/content/wiki/beginner-basics.md?raw'
+import officeToolsMd from '@/content/wiki/office-tools.md?raw'
+import codingToolsMd from '@/content/wiki/coding-tools.md?raw'
 
-/** 新手村: 零基础 AI 概念扫盲(markdown 载体, react-markdown 渲染)。 */
-function BeginnerVillage() {
+/** 标题文本 → 页内锚点 id 用 slug（保留中文，空白转连字符） */
+function wikiSlug(text: string): string {
+  return text.replace(/\s+/g, '-')
+}
+
+/** 新手村条目配置: 二级 = 主题(每主题一篇 md), 三级 = 文内小节(点击滚动到锚点)。 */
+const WIKI_SECTIONS = [
+  {
+    id: 'beginner',
+    label: '零基础概念扫盲',
+    md: beginnerMd,
+    leaves: [
+      { label: 'LLM 是什么', anchor: 'LLM（大语言模型）是什么' },
+      { label: 'Token 与上下文窗口', anchor: 'Token 与上下文窗口' },
+      { label: 'Prompt 提示词', anchor: 'Prompt（提示词）：怎么说话 AI 才听得懂' },
+      { label: 'Agent / Skill / Harness', anchor: 'Agent / Skill / Harness' },
+      { label: 'API Key 是什么', anchor: 'API Key 是什么' },
+      { label: 'Vibe Coding', anchor: 'Vibe Coding（氛围编程）' },
+    ],
+  },
+  {
+    id: 'office-tools',
+    label: 'AI 办公工具推荐',
+    md: officeToolsMd,
+    leaves: [
+      { label: 'Workbuddy', anchor: 'Workbuddy' },
+      { label: 'Kimi Work', anchor: 'Kimi Work' },
+      { label: 'Coze（扣子）', anchor: 'Coze（扣子）' },
+    ],
+  },
+  {
+    id: 'coding-tools',
+    label: 'AI 编程工具推荐',
+    md: codingToolsMd,
+    leaves: [
+      { label: 'Kimi Code', anchor: 'Kimi Code' },
+      { label: 'Codex', anchor: 'Codex' },
+      { label: 'Claude Code', anchor: 'Claude Code' },
+    ],
+  },
+]
+
+/** 新手村 wiki 页: markdown 渲染, h2 小节自动挂锚点(供三级菜单跳转 + scroll-spy)。 */
+function WikiPage({ sectionId, md }: { sectionId: string; md: string }) {
+  const base = import.meta.env.BASE_URL
   return (
     <div className="markdown-body max-w-none animate-fade-in">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{beginnerMd}</ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h2: ({ children }) => {
+            const text = String(children)
+            return (
+              <h2 id={`wiki-${sectionId}-${wikiSlug(text)}`} data-anchor-id={`wiki:${sectionId}:${text}`}>
+                {children}
+              </h2>
+            )
+          },
+          // public/ 下的图片在子路径部署时需补 base
+          img: ({ src, alt }) => (
+            <img src={`${base}${String(src).replace(/^\//, '')}`} alt={alt} className="rounded-lg border border-slate-200" />
+          ),
+        }}
+      >
+        {md}
+      </ReactMarkdown>
     </div>
   )
 }
@@ -197,7 +260,11 @@ const MENU: MenuGroup[] = [
   {
     id: 'newbie',
     label: '新手村',
-    items: [{ id: 'beginner', label: '零基础概念扫盲' }],
+    items: WIKI_SECTIONS.map((s) => ({
+      id: `wiki:${s.id}`,
+      label: s.label,
+      children: s.leaves.map((l) => ({ id: `wiki:${s.id}:${l.anchor}`, label: l.label })),
+    })),
   },
   {
     id: 'start',
@@ -227,8 +294,8 @@ const MENU: MenuGroup[] = [
 
 /** /docs 文档页: 左侧层级菜单(三级) + 右侧纯内容(Kimi 文档风, 无卡片)。 */
 export function Docs() {
-  const [selected, setSelected] = useState('beginner')
-  const [activeId, setActiveId] = useState('beginner')
+  const [selected, setSelected] = useState('wiki:beginner')
+  const [activeId, setActiveId] = useState('wiki:beginner')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [collapsedSub, setCollapsedSub] = useState<Set<string>>(new Set())
 
@@ -320,7 +387,26 @@ export function Docs() {
     tryScroll(0)
   }
 
+  // 点三级菜单(wiki 小节): 选中所属主题 + 滚动到对应小节锚点
+  const selectWiki = (leafId: string) => {
+    const [, sectionId, anchor] = leafId.split(':')
+    const id = `wiki:${sectionId}`
+    setSelected(id)
+    setActiveId(leafId)
+    const anchorElId = `wiki-${sectionId}-${wikiSlug(anchor ?? '')}`
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        document.getElementById(anchorElId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }),
+    )
+  }
+
   const renderContent = () => {
+    // 新手村 wiki 主题: wiki:主题id
+    if (selected.startsWith('wiki:')) {
+      const section = WIKI_SECTIONS.find((s) => s.id === selected.split(':')[1])
+      if (section) return <WikiPage sectionId={section.id} md={section.md} />
+    }
     // 技术参考主题或技术项: techref:主题名[:技术名]
     if (selected.startsWith('techref:')) {
       const parts = selected.split(':')
@@ -338,8 +424,6 @@ export function Docs() {
       )
     }
     switch (selected) {
-      case 'beginner':
-        return <BeginnerVillage />
       case 'install':
         return <QuickStartInstall />
       case 'path':
@@ -417,7 +501,11 @@ export function Docs() {
                                   return (
                                     <button
                                       key={leaf.id}
-                                      onClick={() => selectTech(item.id.slice('techref:'.length), leaf.label)}
+                                      onClick={() =>
+                                        leaf.id.startsWith('wiki:')
+                                          ? selectWiki(leaf.id)
+                                          : selectTech(item.id.slice('techref:'.length), leaf.label)
+                                      }
                                       data-menu-id={leaf.id}
                                       className={`w-full rounded-md py-1.5 pl-8 pr-3 text-left text-xs transition-colors ${
                                         leafActive
