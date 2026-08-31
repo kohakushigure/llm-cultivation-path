@@ -1,8 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Badge, CodeBlock } from '@/components/ui'
 import { TechReferenceGroup } from '@/components/TechReference'
 import { useCourse } from '@/features/course/store'
 import { TECH_GROUPS } from '@/data/techKB'
+import beginnerMd from '@/content/wiki/beginner-basics.md?raw'
+
+/** 新手村: 零基础 AI 概念扫盲(markdown 载体, react-markdown 渲染)。 */
+function BeginnerVillage() {
+  return (
+    <div className="markdown-body max-w-none animate-fade-in">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{beginnerMd}</ReactMarkdown>
+    </div>
+  )
+}
 
 /* ================= 内容区块(纯排版, 无卡片) ================= */
 
@@ -183,6 +195,11 @@ interface MenuGroup {
 
 const MENU: MenuGroup[] = [
   {
+    id: 'newbie',
+    label: '新手村',
+    items: [{ id: 'beginner', label: '零基础概念扫盲' }],
+  },
+  {
     id: 'start',
     label: '快速开始',
     items: [
@@ -210,8 +227,8 @@ const MENU: MenuGroup[] = [
 
 /** /docs 文档页: 左侧层级菜单(三级) + 右侧纯内容(Kimi 文档风, 无卡片)。 */
 export function Docs() {
-  const [selected, setSelected] = useState('install')
-  const [activeId, setActiveId] = useState('install')
+  const [selected, setSelected] = useState('beginner')
+  const [activeId, setActiveId] = useState('beginner')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [collapsedSub, setCollapsedSub] = useState<Set<string>>(new Set())
 
@@ -321,6 +338,8 @@ export function Docs() {
       )
     }
     switch (selected) {
+      case 'beginner':
+        return <BeginnerVillage />
       case 'install':
         return <QuickStartInstall />
       case 'path':
