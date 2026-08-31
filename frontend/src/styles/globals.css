@@ -239,6 +239,41 @@ code {
   @apply bg-slate-100 font-semibold text-slate-700;
 }
 
+/* ===== Markdown 深色态（/docs 深色系开关, issue #49） =====
+   只在祖先带 .dark 类时生效（目前仅 /docs 页根节点）。 */
+.dark .markdown-body {
+  @apply text-slate-200;
+}
+.dark .markdown-body h1,
+.dark .markdown-body h2,
+.dark .markdown-body h3,
+.dark .markdown-body h4,
+.dark .markdown-body strong {
+  @apply text-slate-100;
+}
+.dark .markdown-body code:not(pre code) {
+  @apply border-brand-400/30 bg-slate-800 text-brand-300;
+}
+.dark .markdown-body a {
+  @apply text-brand-300 decoration-brand-400/50 hover:text-brand-200;
+}
+.dark .markdown-body blockquote {
+  @apply border-brand-400/50 bg-slate-800/60 text-slate-200;
+}
+.dark .markdown-body hr {
+  @apply border-slate-700;
+}
+.dark .markdown-body th,
+.dark .markdown-body td {
+  @apply border-slate-700;
+}
+.dark .markdown-body th {
+  @apply bg-slate-800 text-slate-200;
+}
+.dark .markdown-body li::marker {
+  @apply text-brand-400;
+}
+
 /* ===== 无限滚动条带(landing 技术栈) ===== */
 @keyframes marquee {
   from {
@@ -347,4 +382,5 @@ code {
   animation: cube-spin 14s linear infinite;
   transform-style: preserve-3d;
 }
+
 

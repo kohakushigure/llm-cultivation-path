@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm'
 import { Badge, CodeBlock } from '@/components/ui'
 import { TechReferenceGroup } from '@/components/TechReference'
 import { useCourse } from '@/features/course/store'
+import { useTheme } from '@/features/theme/store'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { TECH_GROUPS } from '@/data/techKB'
 import beginnerMd from '@/content/wiki/beginner-basics.md?raw'
 import officeToolsMd from '@/content/wiki/office-tools.md?raw'
@@ -97,7 +99,7 @@ function WikiPage({ sectionId, md, activeAnchor }: { sectionId: string; md: stri
             key={sec.title}
             id={`wiki-${sectionId}-${wikiSlug(sec.title)}`}
             data-anchor-id={anchorId}
-            className={`-ml-5 -mt-5 mb-8 scroll-mt-28 rounded-lg p-5 transition-colors duration-300 ${highlighted ? 'bg-brand-50/60 ring-1 ring-brand-200' : ''}`}
+            className={`mb-8 scroll-mt-28 rounded-lg p-5 transition-colors duration-300 ${highlighted ? 'bg-brand-50/60 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-400/40' : ''}`}
           >
             <div className="markdown-body max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ img }}>{`## ${sec.title}\n${sec.body}`}</ReactMarkdown>
@@ -232,8 +234,8 @@ function FaqBlock() {
       <div className="mt-4 space-y-6">
         {faqs.map((f) => (
           <div key={f.q}>
-            <h4 className="text-base font-semibold text-slate-900">{f.q}</h4>
-            <p className="mt-1.5 text-base leading-relaxed text-slate-600">{f.a}</p>
+            <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">{f.q}</h4>
+            <p className="mt-1.5 text-base leading-relaxed text-slate-600 dark:text-slate-200">{f.a}</p>
           </div>
         ))}
       </div>
@@ -245,23 +247,23 @@ function FaqBlock() {
 
 function DocH2({ children, anchor }: { children: React.ReactNode; anchor?: string }) {
   return (
-    <h2 id={anchor} data-anchor-id={anchor} className="scroll-mt-20 text-2xl font-bold tracking-tight text-slate-900">
+    <h2 id={anchor} data-anchor-id={anchor} className="scroll-mt-20 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
       {children}
     </h2>
   )
 }
 function DocH3({ children }: { children: React.ReactNode }) {
-  return <h3 className="mb-2.5 mt-8 text-lg font-semibold text-slate-900">{children}</h3>
+  return <h3 className="mb-2.5 mt-8 text-lg font-semibold text-slate-900 dark:text-slate-100">{children}</h3>
 }
 function DocP({ children, small }: { children: React.ReactNode; small?: boolean }) {
-  return <p className={`mt-1.5 leading-relaxed text-slate-600 ${small ? 'text-xs' : 'text-base'}`}>{children}</p>
+  return <p className={`mt-1.5 leading-relaxed text-slate-600 dark:text-slate-200 ${small ? 'text-xs' : 'text-base'}`}>{children}</p>
 }
 function DocCode({ children }: { children: React.ReactNode }) {
-  return <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-sm text-brand-700">{children}</code>
+  return <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-sm text-brand-700 dark:bg-slate-800 dark:text-brand-300">{children}</code>
 }
 function DocUl({ items }: { items: string[] }) {
   return (
-    <ul className="mt-2 space-y-2 text-base text-slate-600">
+    <ul className="mt-2 space-y-2 text-base text-slate-600 dark:text-slate-200">
       {items.map((t, i) => (
         <li key={i} className="flex gap-2">
           <span className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-slate-400" />
@@ -330,6 +332,7 @@ export function Docs() {
   const [activeId, setActiveId] = useState('wiki:beginner')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [collapsedSub, setCollapsedSub] = useState<Set<string>>(new Set())
+  const dark = useTheme((s) => s.dark)
 
   // scroll-spy: 右侧滚动时,左侧菜单高亮跟随视口内最靠上的锚点
   useEffect(() => {
@@ -469,10 +472,15 @@ export function Docs() {
   }
 
   return (
-    <div className="w-full">
+    <div className={`w-full min-h-[calc(100vh-3.5rem)] transition-colors duration-300 ${dark ? 'dark bg-slate-950' : ''}`}>
       <div className="flex">
         {/* 左侧层级菜单(贴左, 粘性, 细边线分隔) */}
-        <aside ref={asideRef} className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 flex-shrink-0 overflow-y-auto border-r border-slate-200 py-6 pl-4 pr-6 md:block">
+        <aside ref={asideRef} className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 flex-shrink-0 overflow-y-auto border-r border-slate-200 py-6 pl-4 pr-6 transition-colors duration-300 md:block dark:border-slate-800 dark:bg-slate-950">
+          {/* 深浅色切换: 只作用于 /docs, 放在文档导航最上方（全局导航与文档导航之间） */}
+          <div className="mb-4 flex items-center justify-between px-2">
+            <span className="text-xs text-slate-400 dark:text-slate-500">{dark ? '切换日间模式' : '切换夜间模式'}</span>
+            <ThemeToggle />
+          </div>
           <nav className="space-y-1">
             {MENU.map((group) => {
               const isCollapsed = collapsed.has(group.id)
@@ -480,10 +488,10 @@ export function Docs() {
                 <div key={group.id}>
                   <button
                     onClick={() => toggle(group.id)}
-                    className="flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm font-semibold text-slate-700 transition-colors hover:text-slate-900"
+                    className="flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm font-semibold text-slate-700 transition-colors hover:text-slate-900 dark:text-slate-200 dark:hover:text-slate-100"
                   >
                     {group.label}
-                    <span className={`text-xs text-slate-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}>▶</span>
+                    <span className={`text-xs text-slate-400 transition-transform dark:text-slate-300 ${isCollapsed ? '' : 'rotate-90'}`}>▶</span>
                   </button>
                   {!isCollapsed && (
                     <div className="mb-2 mt-0.5 space-y-0.5">
@@ -511,8 +519,8 @@ export function Docs() {
                               data-menu-id={item.id}
                               className={`flex w-full items-center justify-between rounded-md border-l-2 py-2 pl-4 pr-3 text-left text-sm transition-colors ${
                                 activeId === item.id
-                                  ? 'border-brand-500 bg-brand-50 font-medium text-brand-700'
-                                  : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                  ? 'border-brand-500 bg-brand-50 font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300'
+                                  : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/60 dark:hover:text-slate-100'
                               }`}
                             >
                               {item.label}
@@ -522,7 +530,7 @@ export function Docs() {
                                     e.stopPropagation() // 折叠/展开只由箭头触发,不改变选中
                                     toggleSub(item.id)
                                   }}
-                                  className={`cursor-pointer text-[10px] text-slate-400 transition-transform ${subCollapsed ? '' : 'rotate-90'}`}
+                                  className={`cursor-pointer text-[10px] text-slate-400 transition-transform dark:text-slate-300 ${subCollapsed ? '' : 'rotate-90'}`}
                                 >▶</span>
                               )}
                             </button>
@@ -542,8 +550,8 @@ export function Docs() {
                                       data-menu-id={leaf.id}
                                       className={`w-full rounded-md py-1.5 pl-8 pr-3 text-left text-xs transition-colors ${
                                         leafActive
-                                          ? 'bg-brand-50 font-medium text-brand-700'
-                                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                                          ? 'bg-brand-50 font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300'
+                                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-white dark:hover:text-slate-900'
                                       }`}
                                     >
                                       {leaf.label}

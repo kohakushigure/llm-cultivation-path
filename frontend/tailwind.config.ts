@@ -2,15 +2,19 @@ import type { Config } from 'tailwindcss'
 
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  // 深色系开关（issue #49）：class 策略，目前只作用于 /docs 页面
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         // AI 工程学习主题 · 浅色基调
         // 灵蓝(主色 brand): 方法/运行资源 → sky(天蓝/水蓝)
+        // 2026-08-26: 50/100/200 浅色比率下调 10%(HSL  lightness ×0.9)，
+        // 解决浅色高亮在浅底上对比度不足的问题(issue #47)
         brand: {
-          50: '#F0F9FF',
-          100: '#E0F2FE',
-          200: '#BAE6FD',
+          50: '#BEE5FF',
+          100: '#B2DFFD',
+          200: '#8FD7FC',
           300: '#7DD3FC',
           400: '#38BDF8',
           500: '#0EA5E9',

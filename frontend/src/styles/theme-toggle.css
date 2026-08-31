@@ -1,0 +1,204 @@
+/* ===== 主题切换按钮 —— jh3y night-day toggle 原版移植 =====
+   源: docs/Night-Day-Code/index.html (codepen.io/jh3y/pen/LYgjpYZ)
+   移植说明: 结构/CSS 逐行照抄; 仅裁掉 pilot-bear / astrobear 两只熊的
+   大型 SVG(导航按钮尺寸下不可见), 并把容器查询单位 100cqi 换算为
+   --width 的显式 calc(兼容老 Safari)。 */
+
+.theme-toggle-scope {
+  --tt-width: 96px;
+  --tt-slide-ease: cubic-bezier(.4, -0.3, .6, 1.3);
+  --tt-easing: var(--tt-slide-ease);
+  --tt-speed: 0.5s;
+  --tt-ray: hsl(0 0% 100% / 0.5);
+  --tt-sun: hsl(47, 91%, 58%);
+  --tt-moon: hsl(212, 13%, 82%);
+  --tt-crater: hsl(221, 16%, 68%);
+}
+
+.theme-toggle-scope .toggle__backdrop:first-of-type .clouds path:first-of-type {
+  fill: var(--tt-ray);
+}
+
+.theme-toggle-scope .toggle {
+  -webkit-tap-highlight-color: transparent;
+  width: var(--tt-width);
+  z-index: 10;
+  will-change: transform;
+  isolation: isolate;
+  transform: translate3d(0, 0, 0);
+  aspect-ratio: 8 / 3;
+  border-radius: 100vh;
+  border: 0;
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background var(--tt-speed) var(--tt-easing);
+  background: hsl(
+    calc(204 + (var(--dark, 0) * 25))
+    calc((53 - (var(--dark, 0) * 28)) * 1%)
+    calc((47 - (var(--dark, 0) * 31)) * 1%)
+  );
+  box-shadow:
+    0 calc(var(--tt-width) * 0.02) calc(var(--tt-width) * 0.01) calc(var(--tt-width) * -0.0025) hsl(210 10% 100% / 0.95),
+    0 calc(var(--tt-width) * -0.02) calc(var(--tt-width) * 0.01) calc(var(--tt-width) * -0.0025) hsl(210 10% 10% / 0.2),
+    0 calc(var(--tt-width) * 0.02) calc(var(--tt-width) * 0.5) 0 hsl(210 10% 100% / 0.15);
+}
+
+.theme-toggle-scope .toggle:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow:
+    0 calc(var(--tt-width) * -0.025) calc(var(--tt-width) * 0.025) 0 hsl(210 10% 10% / 0.15) inset,
+    0 calc(var(--tt-width) * 0.025) calc(var(--tt-width) * 0.025) 0 hsl(210 10% 10% / 0.65) inset;
+  border-radius: 100vh;
+}
+
+.theme-toggle-scope .toggle__content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  border-radius: 100vh;
+  display: block;
+  -webkit-clip-path: inset(0 0 0 0 round 100vh);
+  clip-path: inset(0 0 0 0 round 100vh);
+}
+
+.theme-toggle-scope .toggle__backdrop {
+  overflow: visible !important;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  left: 0;
+  transition: translate var(--tt-speed) var(--tt-easing);
+  translate: 0 calc(var(--dark, 0) * (100% - (3 / 8 * var(--tt-width))));
+}
+
+.theme-toggle-scope [aria-pressed='false'] .toggle__backdrop:last-of-type {
+  transition-timing-function: cubic-bezier(.2, -0.6, .7, 1.6);
+}
+.theme-toggle-scope [aria-pressed='false'] .stars path {
+  transition-delay: 0s;
+}
+
+.theme-toggle-scope .stars path {
+  transform-box: fill-box;
+  transform-origin: 25% 50%;
+  scale: calc(0.25 + (var(--dark, 0) * 0.75));
+  transition: scale var(--tt-speed) calc(var(--tt-speed) * 0.5) var(--tt-easing);
+}
+
+.theme-toggle-scope .toggle__indicator {
+  height: 100%;
+  aspect-ratio: 1;
+  border-radius: 0%;
+  display: grid;
+  place-items: center;
+  padding: 3%;
+  transition: translate var(--tt-speed) var(--tt-slide-ease);
+  /* 原版用 100cqi-100%(容器查询), 此处按 --width 显式换算: 行程 = 宽 - 旋钮宽(3/8 宽) */
+  translate: calc(var(--dark, 0) * (var(--tt-width) * 0.625 - 2 * var(--tt-width) * 0.03)) 0;
+}
+
+.theme-toggle-scope .toggle__star {
+  height: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  position: relative;
+  transition: translate var(--tt-speed) var(--tt-easing);
+  translate: calc((var(--dark, 0) * -10%) + 5%) 0;
+}
+
+.theme-toggle-scope .sun {
+  background: var(--tt-sun);
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    calc(var(--tt-width) * 0.01) calc(var(--tt-width) * 0.01) calc(var(--tt-width) * 0.02) 0 hsl(210 10% 100% / 0.95) inset,
+    calc(var(--tt-width) * -0.01) calc(var(--tt-width) * -0.01) calc(var(--tt-width) * 0.02) 0 hsl(210 10% 20% / 0.5) inset;
+}
+.theme-toggle-scope .moon {
+  position: absolute;
+  inset: -1%;
+  border-radius: 50%;
+  background: var(--tt-moon);
+  transition: translate var(--tt-speed) ease-in-out;
+  translate: calc((100 - (var(--dark, 0) * 100)) * 1%) 0%;
+  box-shadow:
+    calc(var(--tt-width) * 0.01) calc(var(--tt-width) * 0.01) calc(var(--tt-width) * 0.02) 0 hsl(210 10% 100% / 0.95) inset,
+    calc(var(--tt-width) * -0.01) calc(var(--tt-width) * -0.01) calc(var(--tt-width) * 0.02) 0 hsl(210 10% 10% / 0.95) inset;
+}
+
+.theme-toggle-scope .moon__crater {
+  position: absolute;
+  background: var(--tt-crater);
+  border-radius: 50%;
+  width: calc(var(--size, 10) * 1%);
+  aspect-ratio: 1;
+  left: calc(var(--x) * 1%);
+  top: calc(var(--y) * 1%);
+  box-shadow:
+    calc(var(--tt-width) * 0.01) calc(var(--tt-width) * 0.01) calc(var(--tt-width) * 0.01) 0 hsl(210 10% 6% / 0.25) inset,
+    0 calc(var(--tt-width) * 0.005) calc(var(--tt-width) * 0.01) 0 hsl(210 10% 100% / 0.25);
+}
+
+.theme-toggle-scope .moon__crater:nth-of-type(1) { --size: 18; --x: 40; --y: 15; }
+.theme-toggle-scope .moon__crater:nth-of-type(2) { --size: 20; --x: 65; --y: 58; }
+.theme-toggle-scope .moon__crater:nth-of-type(3) { --size: 34; --x: 18; --y: 40; }
+
+.theme-toggle-scope .toggle__star:before {
+  content: "";
+  z-index: -1;
+  width: 356%;
+  background:
+    radial-gradient(hsl(0 0% 100% / 0.25) 40%, transparent 40.5%),
+    radial-gradient(hsl(0 0% 100% / 0.25) 56%, transparent 56.5%) hsl(0 0% 100% / 0.25);
+  border-radius: 50%;
+  aspect-ratio: 1;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transition: translate var(--tt-speed) var(--tt-easing);
+  translate: calc((50 - (var(--dark, 0) * 4)) * -1%) -50%;
+}
+
+.theme-toggle-scope .toggle__star:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: hsl(0 0% 0% / 0.5);
+  filter: blur(4px);
+  translate: 2% 4%;
+  border-radius: 50%;
+  z-index: -1;
+}
+
+.theme-toggle-scope .toggle__indicator-wrapper {
+  position: absolute;
+  inset: 0;
+}
+
+.theme-toggle-scope [aria-pressed='true'] {
+  --dark: 1;
+}
+
+/* 星星闪烁(原版 twinkle) */
+.theme-toggle-scope .stars g {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.theme-toggle-scope .stars g:nth-of-type(3) { animation: tt-twinkle 4s -2s infinite; }
+.theme-toggle-scope .stars g:nth-of-type(11) { animation: tt-twinkle 6s -2s infinite; }
+.theme-toggle-scope .stars g:nth-of-type(9) { animation: tt-twinkle 4s -1s infinite; }
+
+@keyframes tt-twinkle {
+  0%, 40%, 60%, 100% { transform: scale(1); }
+  50% { transform: scale(0); }
+}
