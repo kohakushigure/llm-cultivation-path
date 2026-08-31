@@ -1,8 +1,115 @@
 import { useEffect, useRef, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Badge, CodeBlock } from '@/components/ui'
 import { TechReferenceGroup } from '@/components/TechReference'
 import { useCourse } from '@/features/course/store'
 import { TECH_GROUPS } from '@/data/techKB'
+import beginnerMd from '@/content/wiki/beginner-basics.md?raw'
+import officeToolsMd from '@/content/wiki/office-tools.md?raw'
+import codingToolsMd from '@/content/wiki/coding-tools.md?raw'
+
+/** 标题文本 → 页内锚点 id 用 slug（保留中文，空白转连字符） */
+function wikiSlug(text: string): string {
+  return text.replace(/\s+/g, '-')
+}
+
+/** 新手村条目配置: 二级 = 主题(每主题一篇 md), 三级 = 文内小节(点击滚动到锚点)。 */
+const WIKI_SECTIONS = [
+  {
+    id: 'beginner',
+    label: '零基础概念扫盲',
+    md: beginnerMd,
+    leaves: [
+      { label: 'LLM 是什么', anchor: 'LLM（大语言模型）是什么' },
+      { label: 'Token 与上下文窗口', anchor: 'Token 与上下文窗口' },
+      { label: 'Prompt 提示词', anchor: 'Prompt（提示词）：怎么说话 AI 才听得懂' },
+      { label: 'Agent / Skill / Harness', anchor: 'Agent / Skill / Harness' },
+      { label: 'API Key 是什么', anchor: 'API Key 是什么' },
+      { label: 'Vibe Coding', anchor: 'Vibe Coding（氛围编程）' },
+    ],
+  },
+  {
+    id: 'office-tools',
+    label: 'AI 办公工具推荐',
+    md: officeToolsMd,
+    leaves: [
+      { label: 'Workbuddy', anchor: 'Workbuddy' },
+      { label: 'Kimi Work', anchor: 'Kimi Work' },
+      { label: 'Coze（扣子）', anchor: 'Coze（扣子）' },
+    ],
+  },
+  {
+    id: 'coding-tools',
+    label: 'AI 编程工具推荐',
+    md: codingToolsMd,
+    leaves: [
+      { label: 'Kimi Code', anchor: 'Kimi Code' },
+      { label: 'Codex', anchor: 'Codex' },
+      { label: 'Claude Code', anchor: 'Claude Code' },
+    ],
+  },
+]
+
+/** 已知图片的固有尺寸(写死以预留布局空间, 防加载时内容跳动) */
+const WIKI_IMG_SIZE: Record<string, [number, number]> = {
+  'ai-concepts.png': [4096, 2304],
+  'agent-arch.png': [4096, 2304],
+  'workbuddy.png': [1920, 1020],
+  'kimicode-start.png': [1336, 404],
+  'kimicode-run.png': [1479, 760],
+}
+
+/** 新手村 wiki 页: markdown 按 h2 切成小节, 每节包成 TechBlock 式区块
+ *  (正在阅读的小节高亮: 浅品牌底色 + 描边, 与技术参考一致; 锚点供三级菜单跳转 + scroll-spy)。 */
+function WikiPage({ sectionId, md, activeAnchor }: { sectionId: string; md: string; activeAnchor?: string }) {
+  const base = import.meta.env.BASE_URL
+  const img = ({ src, alt }: { src?: string; alt?: string }) => {
+    const file = String(src).split('/').pop() ?? ''
+    const size = WIKI_IMG_SIZE[file]
+    return (
+      <img
+        src={`${base}${String(src).replace(/^\//, '')}`}
+        alt={alt}
+        width={size?.[0]}
+        height={size?.[1]}
+        className="h-auto max-w-full rounded-lg border border-slate-200"
+      />
+    )
+  }
+  // 按 h2 切分: 引言(大标题部分) + 各小节
+  const parts = md.split(/^## /m)
+  const intro = parts[0]
+  const sections = parts.slice(1).map((p) => {
+    const nl = p.indexOf('\n')
+    return { title: p.slice(0, nl).trim(), body: p.slice(nl + 1) }
+  })
+  return (
+    <div className="animate-fade-in">
+      <div className="markdown-body max-w-none">
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ img }}>{intro}</ReactMarkdown>
+      </div>
+      {sections.map((sec) => {
+        const anchorId = `wiki:${sectionId}:${sec.title}`
+        const highlighted = activeAnchor === anchorId
+        return (
+          <div
+            key={sec.title}
+            id={`wiki-${sectionId}-${wikiSlug(sec.title)}`}
+            data-anchor-id={anchorId}
+            className={`-ml-5 -mt-5 mb-8 scroll-mt-28 rounded-lg p-5 transition-colors duration-300 ${highlighted ? 'bg-brand-50/60 ring-1 ring-brand-200' : ''}`}
+          >
+            <div className="markdown-body max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ img }}>{`## ${sec.title}\n${sec.body}`}</ReactMarkdown>
+            </div>
+          </div>
+        )
+      })}
+      {/* 页尾留白: 让最后一节的锚点也能滚到视口判定线以上 */}
+      <div className="h-[55vh]" aria-hidden />
+    </div>
+  )
+}
 
 /* ================= 内容区块(纯排版, 无卡片) ================= */
 
@@ -183,6 +290,15 @@ interface MenuGroup {
 
 const MENU: MenuGroup[] = [
   {
+    id: 'newbie',
+    label: '新手村',
+    items: WIKI_SECTIONS.map((s) => ({
+      id: `wiki:${s.id}`,
+      label: s.label,
+      children: s.leaves.map((l) => ({ id: `wiki:${s.id}:${l.anchor}`, label: l.label })),
+    })),
+  },
+  {
     id: 'start',
     label: '快速开始',
     items: [
@@ -210,8 +326,8 @@ const MENU: MenuGroup[] = [
 
 /** /docs 文档页: 左侧层级菜单(三级) + 右侧纯内容(Kimi 文档风, 无卡片)。 */
 export function Docs() {
-  const [selected, setSelected] = useState('install')
-  const [activeId, setActiveId] = useState('install')
+  const [selected, setSelected] = useState('wiki:beginner')
+  const [activeId, setActiveId] = useState('wiki:beginner')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [collapsedSub, setCollapsedSub] = useState<Set<string>>(new Set())
 
@@ -303,7 +419,27 @@ export function Docs() {
     tryScroll(0)
   }
 
+  // 点三级菜单(wiki 小节): 选中 + 滚动到对应小节锚点(与技术参考同款机制: 双 rAF + token 守卫)
+  const selectWiki = (leafId: string) => {
+    const [, sectionId, anchor] = leafId.split(':')
+    const id = `wiki:${sectionId}`
+    setSelected(id)
+    setActiveId(leafId)
+    const token = ++scrollToken.current
+    const anchorElId = `wiki-${sectionId}-${wikiSlug(anchor ?? '')}`
+    const scrollToAnchor = () => {
+      if (scrollToken.current !== token) return
+      document.getElementById(anchorElId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    requestAnimationFrame(() => requestAnimationFrame(scrollToAnchor))
+  }
+
   const renderContent = () => {
+    // 新手村 wiki 主题: wiki:主题id
+    if (selected.startsWith('wiki:')) {
+      const section = WIKI_SECTIONS.find((s) => s.id === selected.split(':')[1])
+      if (section) return <WikiPage sectionId={section.id} md={section.md} activeAnchor={activeId} />
+    }
     // 技术参考主题或技术项: techref:主题名[:技术名]
     if (selected.startsWith('techref:')) {
       const parts = selected.split(':')
@@ -398,7 +534,11 @@ export function Docs() {
                                   return (
                                     <button
                                       key={leaf.id}
-                                      onClick={() => selectTech(item.id.slice('techref:'.length), leaf.label)}
+                                      onClick={() =>
+                                        leaf.id.startsWith('wiki:')
+                                          ? selectWiki(leaf.id)
+                                          : selectTech(item.id.slice('techref:'.length), leaf.label)
+                                      }
                                       data-menu-id={leaf.id}
                                       className={`w-full rounded-md py-1.5 pl-8 pr-3 text-left text-xs transition-colors ${
                                         leafActive
