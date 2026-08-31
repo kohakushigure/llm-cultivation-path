@@ -51,30 +51,62 @@ const WIKI_SECTIONS = [
   },
 ]
 
-/** 新手村 wiki 页: markdown 渲染, h2 小节自动挂锚点(供三级菜单跳转 + scroll-spy)。 */
-function WikiPage({ sectionId, md }: { sectionId: string; md: string }) {
+/** 已知图片的固有尺寸(写死以预留布局空间, 防加载时内容跳动) */
+const WIKI_IMG_SIZE: Record<string, [number, number]> = {
+  'ai-concepts.png': [4096, 2304],
+  'agent-arch.png': [4096, 2304],
+  'workbuddy.png': [1920, 1020],
+  'kimicode-start.png': [1336, 404],
+  'kimicode-run.png': [1479, 760],
+}
+
+/** 新手村 wiki 页: markdown 按 h2 切成小节, 每节包成 TechBlock 式区块
+ *  (正在阅读的小节高亮: 浅品牌底色 + 描边, 与技术参考一致; 锚点供三级菜单跳转 + scroll-spy)。 */
+function WikiPage({ sectionId, md, activeAnchor }: { sectionId: string; md: string; activeAnchor?: string }) {
   const base = import.meta.env.BASE_URL
+  const img = ({ src, alt }: { src?: string; alt?: string }) => {
+    const file = String(src).split('/').pop() ?? ''
+    const size = WIKI_IMG_SIZE[file]
+    return (
+      <img
+        src={`${base}${String(src).replace(/^\//, '')}`}
+        alt={alt}
+        width={size?.[0]}
+        height={size?.[1]}
+        className="h-auto max-w-full rounded-lg border border-slate-200"
+      />
+    )
+  }
+  // 按 h2 切分: 引言(大标题部分) + 各小节
+  const parts = md.split(/^## /m)
+  const intro = parts[0]
+  const sections = parts.slice(1).map((p) => {
+    const nl = p.indexOf('\n')
+    return { title: p.slice(0, nl).trim(), body: p.slice(nl + 1) }
+  })
   return (
-    <div className="markdown-body max-w-none animate-fade-in">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          h2: ({ children }) => {
-            const text = String(children)
-            return (
-              <h2 id={`wiki-${sectionId}-${wikiSlug(text)}`} data-anchor-id={`wiki:${sectionId}:${text}`}>
-                {children}
-              </h2>
-            )
-          },
-          // public/ 下的图片在子路径部署时需补 base
-          img: ({ src, alt }) => (
-            <img src={`${base}${String(src).replace(/^\//, '')}`} alt={alt} className="rounded-lg border border-slate-200" />
-          ),
-        }}
-      >
-        {md}
-      </ReactMarkdown>
+    <div className="animate-fade-in">
+      <div className="markdown-body max-w-none">
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ img }}>{intro}</ReactMarkdown>
+      </div>
+      {sections.map((sec) => {
+        const anchorId = `wiki:${sectionId}:${sec.title}`
+        const highlighted = activeAnchor === anchorId
+        return (
+          <div
+            key={sec.title}
+            id={`wiki-${sectionId}-${wikiSlug(sec.title)}`}
+            data-anchor-id={anchorId}
+            className={`-ml-5 -mt-5 mb-8 scroll-mt-28 rounded-lg p-5 transition-colors duration-300 ${highlighted ? 'bg-brand-50/60 ring-1 ring-brand-200' : ''}`}
+          >
+            <div className="markdown-body max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ img }}>{`## ${sec.title}\n${sec.body}`}</ReactMarkdown>
+            </div>
+          </div>
+        )
+      })}
+      {/* 页尾留白: 让最后一节的锚点也能滚到视口判定线以上 */}
+      <div className="h-[55vh]" aria-hidden />
     </div>
   )
 }
@@ -387,25 +419,26 @@ export function Docs() {
     tryScroll(0)
   }
 
-  // 点三级菜单(wiki 小节): 选中所属主题 + 滚动到对应小节锚点
+  // 点三级菜单(wiki 小节): 选中 + 滚动到对应小节锚点(与技术参考同款机制: 双 rAF + token 守卫)
   const selectWiki = (leafId: string) => {
     const [, sectionId, anchor] = leafId.split(':')
     const id = `wiki:${sectionId}`
     setSelected(id)
     setActiveId(leafId)
+    const token = ++scrollToken.current
     const anchorElId = `wiki-${sectionId}-${wikiSlug(anchor ?? '')}`
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        document.getElementById(anchorElId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }),
-    )
+    const scrollToAnchor = () => {
+      if (scrollToken.current !== token) return
+      document.getElementById(anchorElId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    requestAnimationFrame(() => requestAnimationFrame(scrollToAnchor))
   }
 
   const renderContent = () => {
     // 新手村 wiki 主题: wiki:主题id
     if (selected.startsWith('wiki:')) {
       const section = WIKI_SECTIONS.find((s) => s.id === selected.split(':')[1])
-      if (section) return <WikiPage sectionId={section.id} md={section.md} />
+      if (section) return <WikiPage sectionId={section.id} md={section.md} activeAnchor={activeId} />
     }
     // 技术参考主题或技术项: techref:主题名[:技术名]
     if (selected.startsWith('techref:')) {
