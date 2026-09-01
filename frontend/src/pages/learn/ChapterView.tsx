@@ -2,12 +2,13 @@ import { useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useCourse } from '@/features/course/store'
 import { useProgress } from '@/features/progression/store'
-import { Card, Badge, difficultyColor } from '@/components/ui'
+import { Card, Badge, Button, difficultyColor } from '@/components/ui'
 
 /** 章节详情: 任务列表 + 进度。 */
 export function ChapterView() {
   const { chapterId } = useParams()
   const course = useCourse((s) => s.course)
+  const courseError = useCourse((s) => s.error)
   const loadCourse = useCourse((s) => s.loadCourse)
   const progress = useProgress()
 
@@ -16,6 +17,15 @@ export function ChapterView() {
   }, [course, loadCourse])
 
   if (!course) {
+    // 加载失败要有错误态: 不能永远显示"加载中"(issue #54)
+    if (courseError) {
+      return (
+        <div className="p-8 text-center">
+          <p className="text-slate-500">学习数据加载失败：{courseError}</p>
+          <Button className="mt-4" onClick={() => void loadCourse()}>重新加载</Button>
+        </div>
+      )
+    }
     return <div className="p-8 text-center text-slate-400">加载中...</div>
   }
   const chapter = useCourse.getState().getChapter(chapterId ?? '')
