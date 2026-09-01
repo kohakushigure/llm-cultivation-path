@@ -28,9 +28,9 @@ Learn LLM engineering like leveling up in a game: 8 chapters, 39 hands-on tasks,
 
 ## 📸 Screenshots
 
-| Task Workspace (IDE + instructions) | Course Map |
+| Task Workspace (IDE + instructions) | Learning Map |
 | :---: | :---: |
-| ![Workspace](docs/screenshots/workspace.png) | ![Course map](docs/screenshots/course-map.png) |
+| ![Workspace](docs/screenshots/workspace.png) | ![Learning map](docs/screenshots/course-map.png) |
 
 | Tech Reference Docs |
 | :---: |

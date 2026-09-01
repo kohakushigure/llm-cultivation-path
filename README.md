@@ -28,9 +28,9 @@
 
 ## 📸 截图
 
-| 学习工作区(IDE + 教学面板) | 课程地图 |
+| 学习工作区(IDE + 教学面板) | 学习地图 |
 | :---: | :---: |
-| ![工作区](docs/screenshots/workspace.png) | ![课程地图](docs/screenshots/course-map.png) |
+| ![工作区](docs/screenshots/workspace.png) | ![学习地图](docs/screenshots/course-map.png) |
 
 | 技术参考文档 |
 | :---: |
