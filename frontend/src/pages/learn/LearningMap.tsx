@@ -87,7 +87,19 @@ function Hero({ course, onStart }: { course: Course; onStart: () => void }) {
         <div className="hero__copy">
           <span className="eyebrow"><i />PROJECT-BASED LEARNING TRAIL</span>
           <span className="data-source data-source--backend"><i />学习数据已连接</span>
-          <h1>{course.title}</h1>
+          <h1 className="hero-title" aria-label="升级路线">
+            <span className="hero-title__char">升</span><span className="hero-title__char">级</span><span className="hero-title__char">路</span><span className="hero-title__char">线</span>
+            <svg className="hero-title__trail" viewBox="0 0 340 36" fill="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="trail-grad" x1="0" y1="0" x2="340" y2="0" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#38b6f1" /><stop offset="1" stopColor="#4fc93f" />
+                </linearGradient>
+              </defs>
+              <path d="M6 28 C 70 8, 130 34, 200 18 S 292 10, 310 14" stroke="url(#trail-grad)" strokeWidth="5" strokeLinecap="round" strokeDasharray="1 13" />
+              <path d="M310 26 V8" stroke="#8a6bf6" strokeWidth="3" strokeLinecap="round" />
+              <path d="M310 8 L326 13 L310 18 Z" fill="#ffb928" />
+            </svg>
+          </h1>
           <p>{course.description}</p>
           <div className="hero__chips"><span>真实项目</span><span>逐步闯关</span><span>本地优先</span></div>
         </div>
