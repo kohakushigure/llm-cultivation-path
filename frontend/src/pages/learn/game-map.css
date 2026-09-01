@@ -110,57 +110,79 @@
 .learn-map .map-chapter-card--locked { opacity: .86; }
 .learn-map .map-chapter-card--locked .map-chapter-card__top b, .learn-map .map-chapter-card--locked > em { color: #647670; }
 .learn-map .map-chapter-card--locked .map-chapter-card__bottom > span { background: #edf1ee; color: #687970; }
-.learn-map .map-finish { position: absolute; z-index: 5; right: 18%; bottom: 1.3%; left: 18%; padding: 8px 12px; border: 1px solid rgba(255,255,255,.45); border-radius: 999px; background: rgba(31,98,80,.42); color: white; font-size: clamp(7px, .9vw, 10px); font-weight: 700; letter-spacing: .06em; text-align: center; text-shadow: 0 1px 2px rgba(0,0,0,.28); backdrop-filter: blur(7px); }
+/* ===== 地图以下区块重设计(issue #58): 终点横幅 / 章节引导卡 / 八站图鉴 / 藏书阁资料区, 页尾已删除 ===== */
+
+/* —— 终点横幅: 金边深绿玻璃, 终点线仪式感 —— */
+.learn-map .map-finish { position: absolute; z-index: 5; right: 14%; bottom: 1.3%; left: 14%; padding: 11px 16px; border: 1px solid rgba(255,225,105,.55); border-radius: 999px; background: linear-gradient(90deg, rgba(20,70,56,.74), rgba(34,104,84,.74), rgba(20,70,56,.74)); color: #fff; font-size: clamp(9px, 1vw, 12px); font-weight: 800; letter-spacing: .14em; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,.4); backdrop-filter: blur(8px); box-shadow: 0 10px 24px rgba(14,56,46,.35); }
 .learn-map .map-finish span { color: #ffe169; }
 
-.learn-map .chapter-focus { display: grid; max-width: 1120px; grid-template-columns: auto minmax(0, 1fr) auto; gap: 22px 25px; align-items: center; margin: 32px auto 0; padding: 28px 30px; border: 1px solid #dfeaf0; border-radius: 25px; background: white; box-shadow: 0 20px 48px rgba(60,100,125,.11); scroll-margin-top: 90px; }
-.learn-map .chapter-focus__icon { display: grid; width: 72px; height: 72px; place-items: center; border-radius: 22px; background: linear-gradient(145deg, #e8f6e1, #cbeabf); color: var(--green-deep); box-shadow: inset 0 1px white; }
-.learn-map .chapter-focus__eyebrow { color: #69a855; font-size: 9px; font-weight: 800; letter-spacing: .13em; }
-.learn-map .chapter-focus h2 { margin: 6px 0 0; font-size: 25px; letter-spacing: -.035em; }
-.learn-map .chapter-focus__copy p { max-width: 680px; margin: 9px 0 0; color: var(--muted); font-size: 12px; line-height: 1.75; }
-.learn-map .chapter-focus__status { display: flex; flex-direction: column; align-items: end; gap: 8px; }
-.learn-map .chapter-focus__status > span:last-child { color: #8290a3; font-size: 9px; }
-.learn-map .status-badge { padding: 7px 10px; border-radius: 999px; font-size: 9px; font-weight: 850; }
-.learn-map .status-badge--completed { background: #e7f6df; color: #30852a; }
-.learn-map .status-badge--current { background: #e5f0ff; color: #3475d4; }
+/* —— 章节引导卡: 「任务委托书」— 状态色顶条 + 大号水印章节数 + 3D 按压按钮 —— */
+.learn-map .chapter-focus { position: relative; display: grid; max-width: 1120px; grid-template-columns: auto minmax(0, 1fr) auto; gap: 24px 28px; align-items: center; margin: 36px auto 0; padding: 34px 36px; border: 1px solid #dfeaf0; border-top: 5px solid var(--green); border-radius: 22px; background: white; box-shadow: 0 24px 54px rgba(60,100,125,.14); scroll-margin-top: 90px; overflow: hidden; }
+.learn-map .chapter-focus--current { border-top-color: #4b8ff7; }
+.learn-map .chapter-focus--locked { border-top-color: #c3ced3; }
+.learn-map .chapter-focus__watermark { position: absolute; right: 22px; top: -30px; color: rgba(75,143,247,.08); font-size: 150px; font-weight: 900; letter-spacing: -.06em; line-height: 1; pointer-events: none; user-select: none; }
+.learn-map .chapter-focus__icon { display: grid; width: 84px; height: 84px; place-items: center; border-radius: 24px; background: linear-gradient(145deg, #e8f6e1, #c9eabd); color: var(--green-deep); box-shadow: inset 0 2px white, 0 10px 22px rgba(70,141,68,.18); }
+.learn-map .chapter-focus--current .chapter-focus__icon { background: linear-gradient(145deg, #e5f0ff, #c3dcfc); color: #2f6fd0; box-shadow: inset 0 2px white, 0 10px 22px rgba(55,121,220,.2); }
+.learn-map .chapter-focus--locked .chapter-focus__icon { background: linear-gradient(145deg, #eef2f1, #d9e0dd); color: #6d7e77; box-shadow: inset 0 2px white; }
+.learn-map .chapter-focus__eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #5da24a; font-size: 11px; font-weight: 800; letter-spacing: .18em; }
+.learn-map .chapter-focus__eyebrow::before { content: ''; width: 22px; height: 3px; border-radius: 3px; background: currentColor; opacity: .65; }
+.learn-map .chapter-focus--current .chapter-focus__eyebrow { color: #4b8ff7; }
+.learn-map .chapter-focus--locked .chapter-focus__eyebrow { color: #8a9ba6; }
+.learn-map .chapter-focus h2 { margin: 8px 0 0; color: #14202e; font-size: 30px; font-weight: 900; letter-spacing: -.02em; }
+.learn-map .chapter-focus__copy p { max-width: 660px; margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.85; }
+.learn-map .chapter-focus__status { display: flex; flex-direction: column; align-items: end; gap: 10px; }
+.learn-map .chapter-focus__status > span:last-child { color: #8290a3; font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+.learn-map .status-badge { padding: 8px 14px; border-radius: 999px; font-size: 11px; font-weight: 850; letter-spacing: .08em; }
+.learn-map .status-badge--completed { background: #e7f6df; color: #30852a; box-shadow: inset 0 0 0 1px rgba(48,133,42,.18); }
+.learn-map .status-badge--current { background: #e5f0ff; color: #3475d4; box-shadow: inset 0 0 0 1px rgba(52,117,212,.2); }
 .learn-map .status-badge--locked { background: #eef1f2; color: #65736e; }
-.learn-map .chapter-focus__metrics { grid-column: 2; display: grid; grid-template-columns: repeat(4, 1fr); overflow: hidden; border: 1px solid #e6edf1; border-radius: 14px; }
-.learn-map .chapter-focus__metrics div { padding: 12px 16px; }
+.learn-map .chapter-focus__metrics { grid-column: 2; display: grid; grid-template-columns: repeat(4, 1fr); overflow: hidden; border: 1px solid #e6edf1; border-radius: 16px; background: linear-gradient(180deg, #fbfdfe, #f3f8fb); }
+.learn-map .chapter-focus__metrics div { padding: 16px 18px; }
 .learn-map .chapter-focus__metrics div + div { border-left: 1px solid #e6edf1; }
-.learn-map .chapter-focus__metrics small { display: block; color: #8a97a7; font-size: 8px; }
-.learn-map .chapter-focus__metrics strong { display: block; margin-top: 4px; color: #243444; font-size: 19px; }
-.learn-map .chapter-focus__metrics i { font-size: 8px; font-style: normal; font-weight: 600; }
-.learn-map .chapter-focus__action { grid-column: 3; display: flex; min-width: 160px; align-items: center; justify-content: space-between; align-self: stretch; padding: 0 18px; border: 0; border-radius: 14px; background: var(--green); color: white; cursor: pointer; font-size: 11px; font-weight: 800; text-decoration: none; }
-.learn-map .chapter-focus__action--current { background: linear-gradient(135deg, #589af6, #3779dc); }
-.learn-map .chapter-focus__action--locked { background: #7c8a86; }
+.learn-map .chapter-focus__metrics small { display: block; color: #8a97a7; font-size: 10px; font-weight: 700; letter-spacing: .1em; }
+.learn-map .chapter-focus__metrics strong { display: block; margin-top: 6px; color: #1b2c3d; font-size: 26px; font-weight: 900; line-height: 1; }
+.learn-map .chapter-focus__metrics i { font-size: 10px; font-style: normal; font-weight: 700; color: #8a97a7; }
+.learn-map .chapter-focus__action { grid-column: 3; display: flex; min-width: 180px; align-items: center; justify-content: space-between; align-self: stretch; padding: 0 22px; border: 0; border-radius: 16px; background: linear-gradient(135deg, #66c53b, #45a827); box-shadow: 0 6px 0 #2d8d2b, 0 14px 26px rgba(61,153,38,.25); color: white; cursor: pointer; font-size: 14px; font-weight: 850; letter-spacing: .05em; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease; }
+.learn-map a.chapter-focus__action:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #2d8d2b, 0 18px 30px rgba(61,153,38,.3); }
+.learn-map a.chapter-focus__action:active { transform: translateY(3px); box-shadow: 0 3px 0 #2d8d2b, 0 8px 16px rgba(61,153,38,.22); }
+.learn-map .chapter-focus__action--current { background: linear-gradient(135deg, #589af6, #3779dc); box-shadow: 0 6px 0 #265caf, 0 14px 26px rgba(55,121,220,.28); }
+.learn-map a.chapter-focus__action--current:hover { box-shadow: 0 8px 0 #265caf, 0 18px 30px rgba(55,121,220,.32); }
+.learn-map a.chapter-focus__action--current:active { box-shadow: 0 3px 0 #265caf, 0 8px 16px rgba(55,121,220,.24); }
+.learn-map .chapter-focus__action--locked { background: linear-gradient(135deg, #9aa8a4, #7c8a86); box-shadow: 0 6px 0 #5f6d68, 0 12px 22px rgba(90,105,100,.22); }
 
-.learn-map .chapter-strip { max-width: 1180px; margin: 90px auto 0; padding: 0 24px; }
+/* —— 八站成长路线: 「图鉴卡」— 左侧状态色条 + 大序号 + 图标徽章 —— */
+.learn-map .chapter-strip { max-width: 1180px; margin: 100px auto 0; padding: 0 24px; }
 .learn-map .section-heading { text-align: center; }
-.learn-map .section-heading > span { color: #63a94c; font-size: 9px; font-weight: 850; letter-spacing: .17em; }
-.learn-map .section-heading h2 { margin: 8px 0 6px; font-size: 32px; letter-spacing: -.04em; }
-.learn-map .section-heading p { margin: 0; color: var(--muted); font-size: 12px; }
-.learn-map .chapter-strip__list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 28px; }
-.learn-map .chapter-strip__item { display: grid; min-width: 0; grid-template-columns: auto auto 1fr; align-items: center; gap: 10px; padding: 14px; border: 1px solid #e0e9ee; border-radius: 15px; background: white; box-shadow: 0 8px 22px rgba(53,91,115,.06); cursor: pointer; text-align: left; transition: .2s ease; }
-.learn-map .chapter-strip__item:hover, .learn-map .chapter-strip__item.is-selected { border-color: #a6d996; box-shadow: 0 12px 25px rgba(70,141,68,.12); transform: translateY(-2px); }
-.learn-map .chapter-strip__item > span { color: #9aa8b7; font-size: 9px; font-weight: 800; }
-.learn-map .chapter-strip__item > i { display: grid; width: 35px; height: 35px; place-items: center; border-radius: 10px; background: #e7f5e2; color: #3e9638; }
-.learn-map .chapter-strip__item > strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.learn-map .chapter-strip__item > small { grid-column: 2 / 4; margin-top: -8px; color: #65a151; font-size: 8px; }
+.learn-map .section-heading > span { display: inline-flex; align-items: center; gap: 8px; color: #63a94c; font-size: 11px; font-weight: 850; letter-spacing: .22em; }
+.learn-map .section-heading > span::before, .learn-map .section-heading > span::after { content: ''; width: 18px; height: 2px; border-radius: 2px; background: currentColor; opacity: .5; }
+.learn-map .section-heading h2 { margin: 10px 0 8px; color: #16222f; font-size: 34px; font-weight: 900; letter-spacing: -.02em; }
+.learn-map .section-heading h2::after { content: ''; display: block; width: 56px; height: 4px; margin: 14px auto 0; border-radius: 4px; background: linear-gradient(90deg, #38b6f1, #4fc93f); }
+.learn-map .section-heading p { margin: 0; color: var(--muted); font-size: 13px; }
+.learn-map .chapter-strip__list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 36px; }
+.learn-map .chapter-strip__item { position: relative; display: grid; min-width: 0; grid-template-columns: auto auto 1fr; align-items: center; gap: 12px; padding: 16px 16px 16px 20px; border: 1px solid #e0e9ee; border-radius: 16px; background: white; box-shadow: 0 8px 22px rgba(53,91,115,.06); cursor: pointer; text-align: left; transition: .2s ease; overflow: hidden; }
+.learn-map .chapter-strip__item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #d3dde2; }
+.learn-map .chapter-strip__item--completed::before { background: var(--green); }
+.learn-map .chapter-strip__item--current::before { background: #4b8ff7; }
+.learn-map .chapter-strip__item:hover, .learn-map .chapter-strip__item.is-selected { border-color: #a6d996; box-shadow: 0 14px 30px rgba(70,141,68,.14); transform: translateY(-3px); }
+.learn-map .chapter-strip__item > span { color: #9aa8b7; font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.learn-map .chapter-strip__item > i { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 12px; background: #e7f5e2; color: #3e9638; }
+.learn-map .chapter-strip__item > strong { overflow: hidden; color: #22303f; font-size: 13px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.learn-map .chapter-strip__item > small { grid-column: 2 / 4; margin-top: -6px; color: #65a151; font-size: 10px; font-weight: 700; letter-spacing: .1em; }
 .learn-map .chapter-strip__item--current > i { background: #e6f0ff; color: #3978d4; }
 .learn-map .chapter-strip__item--current > small { color: #3978d4; }
 .learn-map .chapter-strip__item--locked { opacity: .67; }
 .learn-map .chapter-strip__item--locked > i { background: #edf1ef; color: #6d7e77; }
 .learn-map .chapter-strip__item--locked > small { color: #788781; }
-.learn-map .resources { max-width: 1132px; margin: 90px auto; padding: 50px; border-radius: 28px; background: linear-gradient(135deg, #244861, #2e6e78); color: white; box-shadow: 0 24px 55px rgba(43,90,111,.2); text-align: center; }
-.learn-map .resources > span { color: #a9e48d; font-size: 9px; font-weight: 850; letter-spacing: .17em; }
-.learn-map .resources h2 { margin: 8px 0; font-size: 30px; }
-.learn-map .resources p { margin: 0; color: rgba(255,255,255,.66); font-size: 12px; }
-.learn-map .resources a { display: inline-flex; align-items: center; gap: 8px; margin-top: 20px; padding: 10px 14px; border: 1px solid rgba(255,255,255,.24); border-radius: 11px; color: white; font-size: 10px; font-weight: 750; text-decoration: none; }
-.learn-map footer { display: flex; max-width: 1180px; align-items: center; justify-content: space-between; margin: auto; padding: 28px 24px 38px; border-top: 1px solid #dfeaf0; color: #8997a6; font-size: 9px; }
-.learn-map footer > a { color: #5b8b70; font-weight: 750; text-decoration: none; }
-.learn-map footer .logo strong { font-size: 12px; }
-.learn-map footer .logo small { display: none; }
-.learn-map footer .logo-cube { transform: rotate(30deg) scale(.7); }
+
+/* —— 资料室: 「藏书阁」— 深青渐变 + 点阵纹理 + 金色点缀 —— */
+.learn-map .resources { position: relative; max-width: 1132px; margin: 100px auto; padding: 64px 50px; border-radius: 28px; background: linear-gradient(150deg, #1b3a4e 0%, #20505a 55%, #2e6e78 100%); color: white; box-shadow: 0 26px 60px rgba(31,74,94,.32); text-align: center; overflow: hidden; }
+.learn-map .resources::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.14) 1.5px, transparent 1.6px); background-size: 26px 26px; opacity: .35; pointer-events: none; }
+.learn-map .resources::after { content: '❖'; position: absolute; top: 18px; right: 28px; color: rgba(255,225,105,.5); font-size: 22px; }
+.learn-map .resources > span { position: relative; color: #ffd66b; font-size: 11px; font-weight: 850; letter-spacing: .22em; }
+.learn-map .resources h2 { position: relative; margin: 12px 0 10px; font-size: 34px; font-weight: 900; letter-spacing: -.01em; }
+.learn-map .resources p { position: relative; max-width: 520px; margin: 0 auto; color: rgba(255,255,255,.72); font-size: 14px; line-height: 1.8; }
+.learn-map .resources a { position: relative; display: inline-flex; align-items: center; gap: 9px; margin-top: 26px; padding: 13px 22px; border: 1px solid rgba(255,214,107,.55); border-radius: 13px; background: rgba(255,214,107,.1); color: #ffe169; font-size: 13px; font-weight: 800; letter-spacing: .05em; text-decoration: none; transition: .2s ease; }
+.learn-map .resources a:hover { background: rgba(255,214,107,.2); transform: translateY(-2px); }
 
 .learn-map .loading { display: grid; min-height: 100vh; place-content: center; justify-items: center; text-align: center; }
 .learn-map .loading__spinner { display: grid; width: 55px; height: 55px; margin-top: 34px; place-items: center; border: 5px solid #dcebf4; border-top-color: #4e94f0; border-radius: 50%; color: #d75d4b; font-size: 20px; animation: spin .9s linear infinite; }
@@ -203,12 +225,13 @@
 .learn-map .chapter-node__number { font-size: 11px; }
 .learn-map .chapter-node__state { right: -7px; top: -8px; width: 17px; height: 17px; border-width: 2px; font-size: 6px; }
 .learn-map .road { stroke-width: 3; }
-.learn-map .map-finish { right: 7%; left: 7%; padding: 5px; font-size: 5px; }
-.learn-map .chapter-focus { grid-template-columns: auto 1fr; gap: 16px 14px; margin: 18px 10px 0; padding: 20px 16px; border-radius: 20px; }
-.learn-map .chapter-focus__icon { width: 52px; height: 52px; border-radius: 16px; }
-.learn-map .chapter-focus__eyebrow { font-size: 7px; }
-.learn-map .chapter-focus h2 { font-size: 19px; }
-.learn-map .chapter-focus__copy p { font-size: 10px; }
+.learn-map .map-finish { right: 7%; left: 7%; padding: 7px 10px; font-size: 8px; letter-spacing: .08em; }
+.learn-map .chapter-focus { grid-template-columns: auto 1fr; gap: 16px 14px; margin: 18px 10px 0; padding: 22px 18px; border-radius: 20px; }
+.learn-map .chapter-focus__watermark { font-size: 92px; top: -18px; right: 12px; }
+.learn-map .chapter-focus__icon { width: 56px; height: 56px; border-radius: 16px; }
+.learn-map .chapter-focus__eyebrow { font-size: 9px; }
+.learn-map .chapter-focus h2 { font-size: 22px; }
+.learn-map .chapter-focus__copy p { font-size: 12px; }
 .learn-map .chapter-focus__status { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; }
 .learn-map .chapter-focus__metrics { grid-template-columns: repeat(2, 1fr); }
 .learn-map .chapter-focus__metrics div:nth-child(3) { border-left: 0; border-top: 1px solid #e6edf1; }
@@ -216,9 +239,8 @@
 .learn-map .chapter-strip { margin-top: 60px; padding-inline: 12px; }
 .learn-map .section-heading h2 { font-size: 27px; }
 .learn-map .chapter-strip__list { grid-template-columns: 1fr; }
-.learn-map .resources { margin: 60px 12px; padding: 36px 20px; }
-.learn-map .resources h2 { font-size: 24px; }
-.learn-map footer { flex-direction: column; gap: 12px; text-align: center; }
+.learn-map .resources { margin: 60px 12px; padding: 40px 20px; }
+.learn-map .resources h2 { font-size: 26px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

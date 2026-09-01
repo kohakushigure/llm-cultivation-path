@@ -203,7 +203,8 @@ function ChapterFocus({ chapter, index, status, canEnter }: { chapter: Chapter; 
   const actionClass = `chapter-focus__action chapter-focus__action--${status}`
   const actionLabel = status === 'completed' ? '回顾章节' : status === 'current' ? '继续学习' : '查看项目章节'
   return (
-    <section className="chapter-focus" id="chapter-focus">
+    <section className={`chapter-focus chapter-focus--${status}`} id="chapter-focus">
+      <span className="chapter-focus__watermark" aria-hidden="true">{String(chapter.order).padStart(2, '0')}</span>
       <div className="chapter-focus__icon"><Icon name={meta.icon} size={34} /></div>
       <div className="chapter-focus__copy"><span className="chapter-focus__eyebrow">CHAPTER {String(chapter.order).padStart(2, '0')} · {meta.product}</span><h2>{shortTitle(chapter.title)}</h2><p>{chapter.description}</p></div>
       <div className="chapter-focus__status"><StatusBadge status={status} /><span>Lv.{chapter.unlock.requiredLevel} · {chapter.unlock.requiredExp} EXP 解锁</span></div>
@@ -316,12 +317,6 @@ export function LearningMap() {
           <Link to="/docs">打开项目资料页 <Arrow /></Link>
         </section>
       </main>
-      <footer>
-        <Logo />
-        <p>项目制打怪升级 · 从 API 调用到自建小模型</p>
-        <Link to="/achievements">查看成就</Link>
-        <span>LEARNING MAP V{course.version}</span>
-      </footer>
     </div>
   )
 }
