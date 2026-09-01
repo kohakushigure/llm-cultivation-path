@@ -1,0 +1,256 @@
+.learn-map {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  color: #172033;
+  background: #f4f9fd;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --ink: #172033;
+  --muted: #64738b;
+  --green: #54b736;
+  --green-deep: #2d8d2b;
+  --blue: #4b8ff7;
+  --gold: #ffb928;
+  --purple: #8a6bf6;
+}
+
+.learn-map { min-width: 320px; min-height: 100vh; background: linear-gradient(180deg, #f8fcff 0%, #edf7fc 44%, #f6fbff 100%); }
+.learn-map button, .learn-map a { font: inherit; }
+.learn-map button { color: inherit; }
+.learn-map button:focus-visible, .learn-map a:focus-visible { outline: 3px solid rgba(76, 143, 247, .4); outline-offset: 3px; }
+
+.learn-map .logo { display: flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; }
+.learn-map .logo > span:last-child { display: flex; flex-direction: column; }
+.learn-map .logo strong { font-size: 17px; letter-spacing: -.02em; }
+.learn-map .logo small { margin-top: 3px; color: #8fa0b6; font-size: 7px; font-weight: 700; letter-spacing: .16em; }
+.learn-map .logo-cube { position: relative; display: block; width: 32px; height: 32px; transform: rotate(30deg); }
+.learn-map .logo-cube i { position: absolute; display: block; width: 19px; height: 19px; border: 2px solid #2156a1; background: #4d86ed; }
+.learn-map .logo-cube i:nth-child(1) { left: 6px; top: 0; transform: skewY(-30deg) scaleY(.86); background: #ffd33d; }
+.learn-map .logo-cube i:nth-child(2) { left: 0; top: 10px; transform: skewY(30deg) scaleY(.86); }
+.learn-map .logo-cube i:nth-child(3) { left: 12px; top: 10px; transform: skewY(-30deg) scaleY(.86); background: #315fb9; }
+
+.learn-map .hero { position: relative; overflow: hidden; min-height: 440px; background: linear-gradient(180deg, #cbeeff 0%, #eaf8ff 70%, #eff9fd 100%); }
+.learn-map .hero::before { content: ''; position: absolute; inset: auto 0 0; height: 54%; background: radial-gradient(ellipse at 14% 110%, #9dd5d5 0 22%, transparent 22.5%), radial-gradient(ellipse at 34% 118%, #bbdfdf 0 27%, transparent 27.5%), radial-gradient(ellipse at 74% 118%, #91c9d1 0 31%, transparent 31.5%), radial-gradient(ellipse at 95% 110%, #c0e0d5 0 25%, transparent 25.5%); opacity: .72; }
+.learn-map .hero::after { content: ''; position: absolute; right: 8%; bottom: -24px; width: 280px; height: 135px; border-radius: 50% 50% 0 0; background: linear-gradient(160deg, rgba(116,190,179,.4), rgba(89,154,176,.06)); filter: blur(1px); }
+.learn-map .hero__cloud { position: absolute; width: 260px; height: 70px; border-radius: 70%; background: rgba(255,255,255,.75); filter: blur(2px); }
+.learn-map .hero__cloud::before, .learn-map .hero__cloud::after { content: ''; position: absolute; border-radius: 50%; background: inherit; }
+.learn-map .hero__cloud::before { left: 30px; bottom: 10px; width: 95px; height: 95px; }
+.learn-map .hero__cloud::after { right: 25px; bottom: 8px; width: 120px; height: 120px; }
+.learn-map .hero__cloud--left { left: -110px; top: 62px; }
+.learn-map .hero__cloud--right { right: -90px; bottom: 80px; }
+.learn-map .hero__inner { position: relative; z-index: 2; display: grid; max-width: 1180px; grid-template-columns: 1.25fr .75fr; align-items: center; gap: 70px; margin: auto; padding: 74px 34px 96px; }
+.learn-map .eyebrow { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 18px; color: #47708e; font-size: 9px; font-weight: 800; letter-spacing: .15em; }
+.learn-map .eyebrow i { width: 24px; height: 3px; border-radius: 9px; background: var(--green); }
+.learn-map .data-source { display: flex; width: fit-content; align-items: center; gap: 7px; margin: -5px 0 15px; padding: 6px 9px; border: 1px solid rgba(53,113,144,.12); border-radius: 999px; background: rgba(255,255,255,.55); color: #47708e; font-size: 9px; font-weight: 750; }
+.learn-map .data-source i { width: 7px; height: 7px; border-radius: 50%; background: #e2a53b; box-shadow: 0 0 0 4px rgba(226,165,59,.12); }
+.learn-map .data-source--backend { color: #2f7c3e; }
+.learn-map .data-source--backend i { background: #54b736; box-shadow: 0 0 0 4px rgba(84,183,54,.14); }
+.learn-map .hero h1 { max-width: 720px; margin: 0; font-size: clamp(38px, 4.5vw, 62px); line-height: 1.12; letter-spacing: -.055em; }
+.learn-map .hero__copy > p { max-width: 660px; margin: 22px 0 0; color: #516b84; font-size: 16px; line-height: 1.9; }
+.learn-map .hero__chips { display: flex; gap: 9px; margin-top: 24px; }
+.learn-map .hero__chips span { padding: 6px 10px; border: 1px solid rgba(53,113,144,.13); border-radius: 999px; background: rgba(255,255,255,.5); color: #47708e; font-size: 10px; font-weight: 700; }
+.learn-map .hero-card { padding: 32px 30px 28px; border: 1px solid rgba(255,255,255,.85); border-radius: 24px; background: rgba(255,255,255,.86); box-shadow: 0 24px 60px rgba(52,103,137,.15), inset 0 1px white; backdrop-filter: blur(16px); }
+.learn-map .hero-card__stats { display: grid; grid-template-columns: repeat(3, 1fr); }
+.learn-map .hero-stat { display: flex; min-width: 0; flex-direction: column; align-items: center; padding: 3px 10px 19px; text-align: center; }
+.learn-map .hero-stat + .hero-stat { border-left: 1px solid #e5edf3; }
+.learn-map .hero-stat__icon { display: grid; width: 31px; height: 31px; place-items: center; margin-bottom: 9px; border-radius: 10px; font-size: 19px; }
+.learn-map .hero-stat__icon--blue { background: #e7f1ff; color: var(--blue); }
+.learn-map .hero-stat__icon--gold { background: #fff4d5; color: var(--gold); }
+.learn-map .hero-stat__icon--purple { background: #eeeaff; color: var(--purple); }
+.learn-map .hero-stat strong { font-size: 25px; line-height: 1; }
+.learn-map .hero-stat small { margin-top: 7px; color: #5e6f87; font-size: 10px; font-weight: 650; }
+.learn-map .start-button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 10px; margin-top: 13px; padding: 17px 20px; border: 0; border-radius: 13px; background: linear-gradient(135deg, #66c53b, #45a827); color: white; box-shadow: 0 14px 28px rgba(61,153,38,.22); cursor: pointer; font-size: 17px; font-weight: 850; transition: transform .2s ease, box-shadow .2s ease; }
+.learn-map .start-button:hover { transform: translateY(-2px); box-shadow: 0 18px 32px rgba(61,153,38,.3); }
+.learn-map .start-button__play { display: grid; width: 29px; height: 29px; place-items: center; border-radius: 50%; background: white; color: var(--green-deep); font-size: 11px; }
+
+.learn-map .world-shell { position: relative; z-index: 5; max-width: 1180px; margin: -36px auto 0; padding: 0 24px; scroll-margin-top: 86px; }
+.learn-map .world-map { position: relative; overflow: hidden; width: 100%; aspect-ratio: 934 / 1685; border: 6px solid rgba(255,255,255,.94); border-radius: 35px; background: #aedfeb; box-shadow: 0 24px 70px rgba(43,92,119,.22), 0 0 0 1px rgba(90,144,169,.12); }
+.learn-map .world-map__art, .learn-map .world-map__shade { position: absolute; inset: 0; width: 100%; height: 100%; }
+.learn-map .world-map__art { object-fit: cover; }
+.learn-map .world-map__shade { pointer-events: none; background: linear-gradient(180deg, rgba(45,109,145,.02), transparent 25%, transparent 76%, rgba(16,72,76,.14)); }
+.learn-map .progress-board { position: absolute; z-index: 8; left: 2.3%; top: 3.3%; width: 22%; min-width: 190px; padding: 17px 16px 14px; border: 1px solid rgba(67,96,110,.14); border-radius: 16px; background: rgba(255,252,242,.9); box-shadow: 0 12px 26px rgba(50,86,91,.18); backdrop-filter: blur(10px); transform: rotate(-1deg); }
+.learn-map .progress-board__title { display: flex; align-items: center; gap: 7px; font-size: 10px; }
+.learn-map .progress-board__title > span { color: #db9143; }
+.learn-map .progress-board__title strong { flex: 1; }
+.learn-map .progress-board__title b { color: var(--green-deep); font-size: 11px; }
+.learn-map .progress-track { height: 8px; margin: 13px 0 11px; overflow: hidden; border-radius: 999px; background: #e5dfca; }
+.learn-map .progress-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #70c642, #42a72e); }
+.learn-map .progress-board__meta { display: flex; justify-content: space-between; color: #657067; font-size: 8px; }
+.learn-map .progress-board__meta strong { color: #30382f; }
+.learn-map .progress-board button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 6px; margin-top: 12px; padding: 8px; border: 1px solid rgba(75,84,70,.14); border-radius: 9px; background: rgba(255,255,255,.58); color: #4b574a; cursor: pointer; font-size: 9px; font-weight: 750; }
+.learn-map .map-guide { position: absolute; z-index: 8; top: 3%; right: 2.4%; display: flex; align-items: center; gap: 7px; padding: 10px 15px; border: 1px solid rgba(49,87,109,.12); border-radius: 12px; background: rgba(255,255,255,.9); box-shadow: 0 8px 22px rgba(37,86,111,.13); color: #49637b; cursor: pointer; font-size: 10px; font-weight: 750; }
+.learn-map .road-overlay { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.learn-map .road { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.learn-map .road--completed { stroke: rgba(91,186,62,.9); stroke-width: 7; filter: url(#blue-glow); }
+.learn-map .road--current { stroke: rgba(97,162,255,.96); stroke-width: 7; stroke-dasharray: 17 11; filter: url(#blue-glow); animation: road-flow 1.25s linear infinite; }
+.learn-map .road--locked { stroke: rgba(255,255,255,.44); stroke-width: 4; stroke-dasharray: 3 15; }
+@keyframes road-flow { to { stroke-dashoffset: -28; } }
+.learn-map .chapter-node { position: absolute; z-index: 7; width: clamp(43px, 5.2vw, 66px); height: clamp(43px, 5.2vw, 66px); padding: 0; border: 4px solid rgba(255,255,255,.95); border-radius: 42%; background: linear-gradient(145deg, #67c844, #319c31); box-shadow: 0 7px 0 #226f32, 0 10px 22px rgba(23,85,47,.28); color: white; cursor: pointer; transform: translate(-50%, -50%); transition: transform .2s ease, filter .2s ease; }
+.learn-map .chapter-node:hover, .learn-map .chapter-node.is-selected { z-index: 10; transform: translate(-50%, -50%) scale(1.1); filter: saturate(1.12); }
+.learn-map .chapter-node__number { font-size: clamp(13px, 1.8vw, 23px); font-weight: 900; letter-spacing: -.04em; text-shadow: 0 2px 1px rgba(0,0,0,.16); }
+.learn-map .chapter-node__state { position: absolute; right: -8px; top: -9px; display: grid; width: 22px; height: 22px; place-items: center; border: 3px solid white; border-radius: 50%; background: #3ca05d; color: white; font-size: 9px; font-weight: 900; }
+.learn-map .chapter-node__pulse { position: absolute; inset: -11px; border: 2px solid transparent; border-radius: 50%; pointer-events: none; }
+.learn-map .chapter-node--current { background: linear-gradient(145deg, #65aaff, #397be5); box-shadow: 0 7px 0 #265caf, 0 0 0 8px rgba(111,179,255,.28), 0 13px 30px rgba(34,100,181,.34); }
+.learn-map .chapter-node--current .chapter-node__state { background: #3477df; }
+.learn-map .chapter-node--current .chapter-node__pulse { border-color: rgba(121,188,255,.7); animation: node-pulse 1.8s ease-out infinite; }
+.learn-map .chapter-node--locked { background: linear-gradient(145deg, #9caaa5, #6f817a); box-shadow: 0 7px 0 #53655e, 0 10px 20px rgba(45,74,67,.23); filter: saturate(.55); }
+.learn-map .chapter-node--locked .chapter-node__state { background: #6c7e77; }
+@keyframes node-pulse { 0% { opacity: 1; transform: scale(.75); } 100% { opacity: 0; transform: scale(1.35); } }
+.learn-map .map-chapter-card { position: absolute; z-index: 6; display: flex; width: 25%; max-width: 255px; min-width: 205px; flex-direction: column; padding: 14px 15px 12px; border: 1px solid rgba(69,101,89,.13); border-radius: 14px; background: rgba(255,254,248,.88); box-shadow: 0 10px 26px rgba(36,83,75,.16); cursor: pointer; text-align: left; backdrop-filter: blur(8px); transition: transform .2s ease, background .2s ease, box-shadow .2s ease; }
+.learn-map .map-chapter-card:hover, .learn-map .map-chapter-card.is-selected { z-index: 9; background: rgba(255,255,255,.96); box-shadow: 0 14px 32px rgba(35,87,83,.24), 0 0 0 3px rgba(99,183,67,.18); transform: translateY(-3px); }
+.learn-map .map-chapter-card__top { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.learn-map .map-chapter-card__top i { color: #64716c; font-size: 8px; font-style: normal; font-weight: 800; }
+.learn-map .map-chapter-card__top b { color: var(--green-deep); font-size: 8px; }
+.learn-map .map-chapter-card > strong { color: #17242a; font-size: clamp(10px, 1.15vw, 14px); line-height: 1.45; }
+.learn-map .map-chapter-card > em { margin-top: 6px; color: #389532; font-size: clamp(8px, 1vw, 11px); font-style: normal; font-weight: 800; }
+.learn-map .map-chapter-card__bottom { display: flex; align-items: end; justify-content: space-between; margin-top: 8px; }
+.learn-map .map-chapter-card__bottom small { padding: 3px 6px; border: 1px solid rgba(83,101,91,.14); border-radius: 999px; color: #53615c; background: rgba(255,255,255,.58); font-size: 7px; }
+.learn-map .map-chapter-card__bottom > span { display: grid; width: 27px; height: 27px; place-items: center; border-radius: 8px; background: #e9f5e3; color: var(--green-deep); }
+.learn-map .map-chapter-card--current .map-chapter-card__top b, .learn-map .map-chapter-card--current > em { color: #3478d8; }
+.learn-map .map-chapter-card--current .map-chapter-card__bottom > span { background: #e7f1ff; color: #3478d8; }
+.learn-map .map-chapter-card--locked { opacity: .86; }
+.learn-map .map-chapter-card--locked .map-chapter-card__top b, .learn-map .map-chapter-card--locked > em { color: #647670; }
+.learn-map .map-chapter-card--locked .map-chapter-card__bottom > span { background: #edf1ee; color: #687970; }
+/* ===== 地图以下区块重设计(issue #58): 终点横幅 / 章节引导卡 / 八站图鉴 / 藏书阁资料区, 页尾已删除 ===== */
+
+/* —— 终点横幅: 金边深绿玻璃, 终点线仪式感 —— */
+.learn-map .map-finish { position: absolute; z-index: 5; right: 14%; bottom: 1.3%; left: 14%; padding: 11px 16px; border: 1px solid rgba(255,225,105,.55); border-radius: 999px; background: linear-gradient(90deg, rgba(20,70,56,.74), rgba(34,104,84,.74), rgba(20,70,56,.74)); color: #fff; font-size: clamp(9px, 1vw, 12px); font-weight: 800; letter-spacing: .14em; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,.4); backdrop-filter: blur(8px); box-shadow: 0 10px 24px rgba(14,56,46,.35); }
+.learn-map .map-finish span { color: #ffe169; }
+
+/* —— 章节引导卡: 「任务委托书」— 状态色顶条 + 大号水印章节数 + 3D 按压按钮 —— */
+.learn-map .chapter-focus { position: relative; display: grid; max-width: 1120px; grid-template-columns: auto minmax(0, 1fr) auto; gap: 24px 28px; align-items: center; margin: 36px auto 0; padding: 34px 36px; border: 1px solid #dfeaf0; border-top: 5px solid var(--green); border-radius: 22px; background: white; box-shadow: 0 24px 54px rgba(60,100,125,.14); scroll-margin-top: 90px; overflow: hidden; }
+.learn-map .chapter-focus--current { border-top-color: #4b8ff7; }
+.learn-map .chapter-focus--locked { border-top-color: #c3ced3; }
+.learn-map .chapter-focus__watermark { position: absolute; right: 22px; top: -30px; color: rgba(75,143,247,.08); font-size: 150px; font-weight: 900; letter-spacing: -.06em; line-height: 1; pointer-events: none; user-select: none; }
+.learn-map .chapter-focus__icon { display: grid; width: 84px; height: 84px; place-items: center; border-radius: 24px; background: linear-gradient(145deg, #e8f6e1, #c9eabd); color: var(--green-deep); box-shadow: inset 0 2px white, 0 10px 22px rgba(70,141,68,.18); }
+.learn-map .chapter-focus--current .chapter-focus__icon { background: linear-gradient(145deg, #e5f0ff, #c3dcfc); color: #2f6fd0; box-shadow: inset 0 2px white, 0 10px 22px rgba(55,121,220,.2); }
+.learn-map .chapter-focus--locked .chapter-focus__icon { background: linear-gradient(145deg, #eef2f1, #d9e0dd); color: #6d7e77; box-shadow: inset 0 2px white; }
+.learn-map .chapter-focus__eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #5da24a; font-size: 11px; font-weight: 800; letter-spacing: .18em; }
+.learn-map .chapter-focus__eyebrow::before { content: ''; width: 22px; height: 3px; border-radius: 3px; background: currentColor; opacity: .65; }
+.learn-map .chapter-focus--current .chapter-focus__eyebrow { color: #4b8ff7; }
+.learn-map .chapter-focus--locked .chapter-focus__eyebrow { color: #8a9ba6; }
+.learn-map .chapter-focus h2 { margin: 8px 0 0; color: #14202e; font-size: 30px; font-weight: 900; letter-spacing: -.02em; }
+.learn-map .chapter-focus__copy p { max-width: 660px; margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.85; }
+.learn-map .chapter-focus__status { display: flex; flex-direction: column; align-items: end; gap: 10px; }
+.learn-map .chapter-focus__status > span:last-child { color: #8290a3; font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+.learn-map .status-badge { padding: 8px 14px; border-radius: 999px; font-size: 11px; font-weight: 850; letter-spacing: .08em; }
+.learn-map .status-badge--completed { background: #e7f6df; color: #30852a; box-shadow: inset 0 0 0 1px rgba(48,133,42,.18); }
+.learn-map .status-badge--current { background: #e5f0ff; color: #3475d4; box-shadow: inset 0 0 0 1px rgba(52,117,212,.2); }
+.learn-map .status-badge--locked { background: #eef1f2; color: #65736e; }
+.learn-map .chapter-focus__metrics { grid-column: 2; display: grid; grid-template-columns: repeat(4, 1fr); overflow: hidden; border: 1px solid #e6edf1; border-radius: 16px; background: linear-gradient(180deg, #fbfdfe, #f3f8fb); }
+.learn-map .chapter-focus__metrics div { padding: 16px 18px; }
+.learn-map .chapter-focus__metrics div + div { border-left: 1px solid #e6edf1; }
+.learn-map .chapter-focus__metrics small { display: block; color: #8a97a7; font-size: 10px; font-weight: 700; letter-spacing: .1em; }
+.learn-map .chapter-focus__metrics strong { display: block; margin-top: 6px; color: #1b2c3d; font-size: 26px; font-weight: 900; line-height: 1; }
+.learn-map .chapter-focus__metrics i { font-size: 10px; font-style: normal; font-weight: 700; color: #8a97a7; }
+.learn-map .chapter-focus__action { grid-column: 3; display: flex; min-width: 180px; align-items: center; justify-content: space-between; align-self: stretch; padding: 0 22px; border: 0; border-radius: 16px; background: linear-gradient(135deg, #66c53b, #45a827); box-shadow: 0 6px 0 #2d8d2b, 0 14px 26px rgba(61,153,38,.25); color: white; cursor: pointer; font-size: 14px; font-weight: 850; letter-spacing: .05em; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease; }
+.learn-map a.chapter-focus__action:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #2d8d2b, 0 18px 30px rgba(61,153,38,.3); }
+.learn-map a.chapter-focus__action:active { transform: translateY(3px); box-shadow: 0 3px 0 #2d8d2b, 0 8px 16px rgba(61,153,38,.22); }
+.learn-map .chapter-focus__action--current { background: linear-gradient(135deg, #589af6, #3779dc); box-shadow: 0 6px 0 #265caf, 0 14px 26px rgba(55,121,220,.28); }
+.learn-map a.chapter-focus__action--current:hover { box-shadow: 0 8px 0 #265caf, 0 18px 30px rgba(55,121,220,.32); }
+.learn-map a.chapter-focus__action--current:active { box-shadow: 0 3px 0 #265caf, 0 8px 16px rgba(55,121,220,.24); }
+.learn-map .chapter-focus__action--locked { background: linear-gradient(135deg, #9aa8a4, #7c8a86); box-shadow: 0 6px 0 #5f6d68, 0 12px 22px rgba(90,105,100,.22); }
+
+/* —— 八站成长路线: 「图鉴卡」— 左侧状态色条 + 大序号 + 图标徽章 —— */
+.learn-map .chapter-strip { max-width: 1180px; margin: 100px auto 0; padding: 0 24px; }
+.learn-map .section-heading { text-align: center; }
+.learn-map .section-heading > span { display: inline-flex; align-items: center; gap: 8px; color: #63a94c; font-size: 11px; font-weight: 850; letter-spacing: .22em; }
+.learn-map .section-heading > span::before, .learn-map .section-heading > span::after { content: ''; width: 18px; height: 2px; border-radius: 2px; background: currentColor; opacity: .5; }
+.learn-map .section-heading h2 { margin: 10px 0 8px; color: #16222f; font-size: 34px; font-weight: 900; letter-spacing: -.02em; }
+.learn-map .section-heading h2::after { content: ''; display: block; width: 56px; height: 4px; margin: 14px auto 0; border-radius: 4px; background: linear-gradient(90deg, #38b6f1, #4fc93f); }
+.learn-map .section-heading p { margin: 0; color: var(--muted); font-size: 13px; }
+.learn-map .chapter-strip__list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 36px; }
+.learn-map .chapter-strip__item { position: relative; display: grid; min-width: 0; grid-template-columns: auto auto 1fr; align-items: center; gap: 12px; padding: 16px 16px 16px 20px; border: 1px solid #e0e9ee; border-radius: 16px; background: white; box-shadow: 0 8px 22px rgba(53,91,115,.06); cursor: pointer; text-align: left; transition: .2s ease; overflow: hidden; }
+.learn-map .chapter-strip__item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #d3dde2; }
+.learn-map .chapter-strip__item--completed::before { background: var(--green); }
+.learn-map .chapter-strip__item--current::before { background: #4b8ff7; }
+.learn-map .chapter-strip__item:hover, .learn-map .chapter-strip__item.is-selected { border-color: #a6d996; box-shadow: 0 14px 30px rgba(70,141,68,.14); transform: translateY(-3px); }
+.learn-map .chapter-strip__item > span { color: #9aa8b7; font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.learn-map .chapter-strip__item > i { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 12px; background: #e7f5e2; color: #3e9638; }
+.learn-map .chapter-strip__item > strong { overflow: hidden; color: #22303f; font-size: 13px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.learn-map .chapter-strip__item > small { grid-column: 2 / 4; margin-top: -6px; color: #65a151; font-size: 10px; font-weight: 700; letter-spacing: .1em; }
+.learn-map .chapter-strip__item--current > i { background: #e6f0ff; color: #3978d4; }
+.learn-map .chapter-strip__item--current > small { color: #3978d4; }
+.learn-map .chapter-strip__item--locked { opacity: .67; }
+.learn-map .chapter-strip__item--locked > i { background: #edf1ef; color: #6d7e77; }
+.learn-map .chapter-strip__item--locked > small { color: #788781; }
+
+/* —— 资料室: 「藏书阁」— 深青渐变 + 点阵纹理 + 金色点缀 —— */
+.learn-map .resources { position: relative; max-width: 1132px; margin: 100px auto; padding: 64px 50px; border-radius: 28px; background: linear-gradient(150deg, #1b3a4e 0%, #20505a 55%, #2e6e78 100%); color: white; box-shadow: 0 26px 60px rgba(31,74,94,.32); text-align: center; overflow: hidden; }
+.learn-map .resources::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.14) 1.5px, transparent 1.6px); background-size: 26px 26px; opacity: .35; pointer-events: none; }
+.learn-map .resources::after { content: '❖'; position: absolute; top: 18px; right: 28px; color: rgba(255,225,105,.5); font-size: 22px; }
+.learn-map .resources > span { position: relative; color: #ffd66b; font-size: 11px; font-weight: 850; letter-spacing: .22em; }
+.learn-map .resources h2 { position: relative; margin: 12px 0 10px; font-size: 34px; font-weight: 900; letter-spacing: -.01em; }
+.learn-map .resources p { position: relative; max-width: 520px; margin: 0 auto; color: rgba(255,255,255,.72); font-size: 14px; line-height: 1.8; }
+.learn-map .resources a { position: relative; display: inline-flex; align-items: center; gap: 9px; margin-top: 26px; padding: 13px 22px; border: 1px solid rgba(255,214,107,.55); border-radius: 13px; background: rgba(255,214,107,.1); color: #ffe169; font-size: 13px; font-weight: 800; letter-spacing: .05em; text-decoration: none; transition: .2s ease; }
+.learn-map .resources a:hover { background: rgba(255,214,107,.2); transform: translateY(-2px); }
+
+.learn-map .loading { display: grid; min-height: 100vh; place-content: center; justify-items: center; text-align: center; }
+.learn-map .loading__spinner { display: grid; width: 55px; height: 55px; margin-top: 34px; place-items: center; border: 5px solid #dcebf4; border-top-color: #4e94f0; border-radius: 50%; color: #d75d4b; font-size: 20px; animation: spin .9s linear infinite; }
+.learn-map .loading h1 { margin: 20px 0 6px; font-size: 22px; }
+.learn-map .loading p { margin: 0; color: var(--muted); font-size: 11px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 900px) {
+.learn-map .hero__inner { gap: 30px; padding-inline: 25px; }
+.learn-map .hero h1 { font-size: 42px; }
+.learn-map .map-chapter-card { min-width: 175px; padding: 10px 11px; }
+.learn-map .progress-board { min-width: 165px; }
+.learn-map .chapter-focus { margin-inline: 24px; grid-template-columns: auto 1fr; }
+.learn-map .chapter-focus__status { grid-column: 2; align-items: start; }
+.learn-map .chapter-focus__metrics { grid-column: 1 / -1; }
+.learn-map .chapter-focus__action { grid-column: 1 / -1; min-height: 48px; }
+.learn-map .chapter-strip__list { grid-template-columns: repeat(2, 1fr); }
+.learn-map .resources { margin-inline: 24px; }
+}
+
+@media (max-width: 700px) {
+.learn-map .logo strong { font-size: 14px; }
+.learn-map .logo small { display: none; }
+.learn-map .hero { min-height: 0; }
+.learn-map .hero__inner { grid-template-columns: 1fr; gap: 28px; padding: 58px 18px 76px; }
+.learn-map .hero h1 { font-size: clamp(34px, 10vw, 46px); }
+.learn-map .hero__copy > p { font-size: 13px; }
+.learn-map .hero-card { padding: 22px 16px 18px; }
+.learn-map .hero-stat strong { font-size: 21px; }
+.learn-map .world-shell { margin-top: -24px; padding: 0 10px; }
+.learn-map .world-map { border-width: 4px; border-radius: 24px; }
+.learn-map .progress-board { top: 2.4%; width: 42%; min-width: 0; padding: 10px; border-radius: 11px; }
+.learn-map .progress-board__title { font-size: 7px; }
+.learn-map .progress-board__meta, .learn-map .progress-board button { font-size: 6px; }
+.learn-map .progress-board button { margin-top: 7px; padding: 5px; }
+.learn-map .progress-track { height: 5px; margin: 8px 0 7px; }
+.learn-map .map-guide { top: 2.4%; padding: 7px 9px; font-size: 7px; }
+.learn-map .map-chapter-card { display: none; }
+.learn-map .chapter-node { width: 36px; height: 36px; border-width: 3px; box-shadow: 0 5px 0 #226f32, 0 7px 14px rgba(23,85,47,.26); }
+.learn-map .chapter-node__number { font-size: 11px; }
+.learn-map .chapter-node__state { right: -7px; top: -8px; width: 17px; height: 17px; border-width: 2px; font-size: 6px; }
+.learn-map .road { stroke-width: 3; }
+.learn-map .map-finish { right: 7%; left: 7%; padding: 7px 10px; font-size: 8px; letter-spacing: .08em; }
+.learn-map .chapter-focus { grid-template-columns: auto 1fr; gap: 16px 14px; margin: 18px 10px 0; padding: 22px 18px; border-radius: 20px; }
+.learn-map .chapter-focus__watermark { font-size: 92px; top: -18px; right: 12px; }
+.learn-map .chapter-focus__icon { width: 56px; height: 56px; border-radius: 16px; }
+.learn-map .chapter-focus__eyebrow { font-size: 9px; }
+.learn-map .chapter-focus h2 { font-size: 22px; }
+.learn-map .chapter-focus__copy p { font-size: 12px; }
+.learn-map .chapter-focus__status { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; }
+.learn-map .chapter-focus__metrics { grid-template-columns: repeat(2, 1fr); }
+.learn-map .chapter-focus__metrics div:nth-child(3) { border-left: 0; border-top: 1px solid #e6edf1; }
+.learn-map .chapter-focus__metrics div:nth-child(4) { border-top: 1px solid #e6edf1; }
+.learn-map .chapter-strip { margin-top: 60px; padding-inline: 12px; }
+.learn-map .section-heading h2 { font-size: 27px; }
+.learn-map .chapter-strip__list { grid-template-columns: 1fr; }
+.learn-map .resources { margin: 60px 12px; padding: 40px 20px; }
+.learn-map .resources h2 { font-size: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+.learn-map *, .learn-map *::before, .learn-map *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* 加载失败重试按钮(issue #54 错误态接入,demo 原本无此元素,沿用 map-guide 风格) */
+.learn-map .loading__retry { margin-top: 18px; padding: 10px 18px; border: 1px solid rgba(49,87,109,.16); border-radius: 12px; background: rgba(255,255,255,.92); box-shadow: 0 8px 22px rgba(37,86,111,.13); color: #49637b; cursor: pointer; font-size: 12px; font-weight: 750; }
+.learn-map .loading__retry:hover { background: #ffffff; }
+
+/* Hero 主标题「升级路线」艺术图(issue #57, 用户设计稿): 原图 upgrade-route-logo.png 留同目录不进构建, 页面用 webp */
+.learn-map .hero-title { max-width: none; }
+.learn-map .hero-title__logo { display: block; width: min(100%, 560px); height: auto; filter: drop-shadow(0 10px 24px rgba(43,110,180,.25)); }

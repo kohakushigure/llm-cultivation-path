@@ -32,6 +32,7 @@ export function TaskWorkspace() {
   const { chapterId, taskId } = useParams()
   const navigate = useNavigate()
   const course = useCourse((s) => s.course)
+  const courseError = useCourse((s) => s.error)
   const loadCourse = useCourse((s) => s.loadCourse)
   const progress = useProgress()
 
@@ -235,7 +236,16 @@ export function TaskWorkspace() {
   }
 
   if (!course) {
-    return <div className="p-8 text-center text-slate-400">加载课程中...</div>
+    // 加载失败要有错误态: 不能永远显示"加载中"(issue #54)
+    if (courseError) {
+      return (
+        <div className="p-8 text-center">
+          <p className="text-slate-500">学习数据加载失败：{courseError}</p>
+          <Button className="mt-4" onClick={() => void loadCourse()}>重新加载</Button>
+        </div>
+      )
+    }
+    return <div className="p-8 text-center text-slate-400">加载学习数据中...</div>
   }
   if (!task || !step) {
     return (
