@@ -4,6 +4,7 @@ import { Landing } from '@/pages/Landing'
 import { About } from '@/pages/About'
 import { Docs } from '@/pages/Docs'
 import { NotFound } from '@/pages/NotFound'
+import { DocsOld } from '@/pages/DocsOld'
 import { Profile } from '@/pages/Profile'
 import { Achievements } from '@/pages/Achievements'
 import { LearningMap } from '@/pages/learn/LearningMap'
@@ -21,6 +22,7 @@ export const router = createBrowserRouter(
         { index: true, element: <Landing /> },
         { path: 'about', element: <About /> },
         { path: 'docs', element: <Docs /> },
+        { path: 'docs-old', element: <DocsOld /> },
         { path: 'learn', element: <LearningMap /> },
         { path: 'learn/:chapterId', element: <ChapterView /> },
         { path: 'learn/:chapterId/:taskId', element: <TaskWorkspace /> },
