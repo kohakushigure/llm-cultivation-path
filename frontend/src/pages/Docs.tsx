@@ -1,59 +1,24 @@
-import { useEffect, useRef, useState } from 'react'
+/**
+ * /docs 文档页(2026-09-01 扶正, ADR-0012 三栏版式; 旧版保留在 /docs-old)。
+ * 三栏: 左旅程导航树 / 中内容(面包屑+正文+上一页/下一页) / 右页内 TOC。
+ * wiki 页带四级小节导航(可折叠、短标题、阅读高亮 scroll-spy, 机制沿用旧版 Docs)。
+ * 逻辑模块在 ./docsNavModel(可测)。
+ */
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Badge, CodeBlock } from '@/components/ui'
-import { TechReferenceGroup } from '@/components/TechReference'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { useCourse } from '@/features/course/store'
 import { useTheme } from '@/features/theme/store'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { TECH_GROUPS } from '@/data/techKB'
-import beginnerMd from '@/content/wiki/beginner-basics.md?raw'
-import officeToolsMd from '@/content/wiki/office-tools.md?raw'
-import codingToolsMd from '@/content/wiki/coding-tools.md?raw'
+import type { TechInfo } from '@/data/techKB'
+import {
+  FAQS, JOURNEY, PAGES, WIKI_MD, WIKI_NEXT_STEP,
+  secLabel, tocAnchorsFor, wikiSections,
+} from './docsNavModel'
 
-/** 标题文本 → 页内锚点 id 用 slug（保留中文，空白转连字符） */
-function wikiSlug(text: string): string {
-  return text.replace(/\s+/g, '-')
-}
+/* ================= 内容渲染 ================= */
 
-/** 新手村条目配置: 二级 = 主题(每主题一篇 md), 三级 = 文内小节(点击滚动到锚点)。 */
-const WIKI_SECTIONS = [
-  {
-    id: 'beginner',
-    label: '零基础概念扫盲',
-    md: beginnerMd,
-    leaves: [
-      { label: 'LLM 是什么', anchor: 'LLM（大语言模型）是什么' },
-      { label: 'Token 与上下文窗口', anchor: 'Token 与上下文窗口' },
-      { label: 'Prompt 提示词', anchor: 'Prompt（提示词）：怎么说话 AI 才听得懂' },
-      { label: 'Agent / Skill / Harness', anchor: 'Agent / Skill / Harness' },
-      { label: 'API Key 是什么', anchor: 'API Key 是什么' },
-      { label: 'Vibe Coding', anchor: 'Vibe Coding（氛围编程）' },
-    ],
-  },
-  {
-    id: 'office-tools',
-    label: 'AI 办公工具推荐',
-    md: officeToolsMd,
-    leaves: [
-      { label: 'Workbuddy', anchor: 'Workbuddy' },
-      { label: 'Kimi Work', anchor: 'Kimi Work' },
-      { label: 'Coze（扣子）', anchor: 'Coze（扣子）' },
-    ],
-  },
-  {
-    id: 'coding-tools',
-    label: 'AI 编程工具推荐',
-    md: codingToolsMd,
-    leaves: [
-      { label: 'Kimi Code', anchor: 'Kimi Code' },
-      { label: 'Codex', anchor: 'Codex' },
-      { label: 'Claude Code', anchor: 'Claude Code' },
-    ],
-  },
-]
-
-/** 已知图片的固有尺寸(写死以预留布局空间, 防加载时内容跳动) */
 const WIKI_IMG_SIZE: Record<string, [number, number]> = {
   'ai-concepts.png': [4096, 2304],
   'agent-arch.png': [4096, 2304],
@@ -62,180 +27,139 @@ const WIKI_IMG_SIZE: Record<string, [number, number]> = {
   'kimicode-run.png': [1479, 760],
 }
 
-/** 新手村 wiki 页: markdown 按 h2 切成小节, 每节包成 TechBlock 式区块
- *  (正在阅读的小节高亮: 浅品牌底色 + 描边, 与技术参考一致; 锚点供三级菜单跳转 + scroll-spy)。 */
-function WikiPage({ sectionId, md, activeAnchor }: { sectionId: string; md: string; activeAnchor?: string }) {
+function MdImg({ src, alt }: { src?: string; alt?: string }) {
   const base = import.meta.env.BASE_URL
-  const img = ({ src, alt }: { src?: string; alt?: string }) => {
-    const file = String(src).split('/').pop() ?? ''
-    const size = WIKI_IMG_SIZE[file]
-    return (
-      <img
-        src={`${base}${String(src).replace(/^\//, '')}`}
-        alt={alt}
-        width={size?.[0]}
-        height={size?.[1]}
-        className="h-auto max-w-full rounded-lg border border-slate-200"
-      />
-    )
-  }
-  // 按 h2 切分: 引言(大标题部分) + 各小节
-  const parts = md.split(/^## /m)
-  const intro = parts[0]
-  const sections = parts.slice(1).map((p) => {
-    const nl = p.indexOf('\n')
-    return { title: p.slice(0, nl).trim(), body: p.slice(nl + 1) }
-  })
+  const file = String(src).split('/').pop() ?? ''
+  const size = WIKI_IMG_SIZE[file]
   return (
-    <div className="animate-fade-in">
-      <div className="markdown-body max-w-none">
-        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ img }}>{intro}</ReactMarkdown>
-      </div>
-      {sections.map((sec) => {
-        const anchorId = `wiki:${sectionId}:${sec.title}`
-        const highlighted = activeAnchor === anchorId
+    <img
+      src={`${base}${String(src).replace(/^\//, '')}`}
+      alt={alt}
+      width={size?.[0]}
+      height={size?.[1]}
+      className="h-auto max-w-full rounded-lg border border-slate-200 dark:border-slate-700"
+    />
+  )
+}
+
+/** wiki 页: markdown 全文渲染, h2 小节带锚点供 TOC + 四级导航; 正在阅读的小节高亮(沿用原版 Docs 机制)。 */
+function WikiContent({ id, activeAnchor }: { id: string; activeAnchor: string }) {
+  const md = WIKI_MD[id.replace('wiki:', '')] ?? ''
+  const parts = md.split(/^## /m)
+  return (
+    <div className="markdown-body max-w-none">
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ img: MdImg }}>{parts[0]}</ReactMarkdown>
+      {parts.slice(1).map((p) => {
+        const nl = p.indexOf('\n')
+        const title = p.slice(0, nl).trim()
+        const body = p.slice(nl + 1)
+        if (title === WIKI_NEXT_STEP) {
+          return (
+            <div key={title} className="mt-8 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-400/30 dark:bg-amber-500/10">
+              <span className="text-2xl leading-none" aria-hidden>😊</span>
+              <div className="markdown-body max-w-none text-[15px] font-medium text-amber-900 dark:text-amber-100">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
+              </div>
+            </div>
+          )
+        }
+        const highlighted = activeAnchor === title
         return (
           <div
-            key={sec.title}
-            id={`wiki-${sectionId}-${wikiSlug(sec.title)}`}
-            data-anchor-id={anchorId}
+            key={title}
+            id={`sec-${title}`}
+            data-anchor-id={title}
             className={`mb-8 scroll-mt-28 rounded-lg p-5 transition-colors duration-300 ${highlighted ? 'bg-brand-50/60 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-400/40' : ''}`}
           >
-            <div className="markdown-body max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ img }}>{`## ${sec.title}\n${sec.body}`}</ReactMarkdown>
-            </div>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ img: MdImg }}>{`## ${p}`}</ReactMarkdown>
           </div>
         )
       })}
-      {/* 页尾留白: 让最后一节的锚点也能滚到视口判定线以上 */}
-      <div className="h-[55vh]" aria-hidden />
     </div>
   )
 }
 
-/* ================= 内容区块(纯排版, 无卡片) ================= */
-
-/** 快速开始 · 安装与配置 */
-function QuickStartInstall() {
+/** 技术条目页: 介绍/API 要点/安装/官方文档/用到的地方(真实聚合课程树)。 */
+function TechContent({ tech }: { tech: TechInfo }) {
+  const course = useCourse((s) => s.course)
+  const loadCourse = useCourse((s) => s.loadCourse)
+  const usedIn = useMemo(() => {
+    if (!course) { loadCourse(); return [] }
+    const keys = tech.matchKeys.map((k) => k.toLowerCase())
+    const hits: { taskId: string; taskTitle: string }[] = []
+    for (const ch of course.chapters)
+      for (const t of ch.tasks)
+        if (t.steps.some((s) => s.techStack.some((x) => keys.includes(x.name.toLowerCase()))))
+          hits.push({ taskId: t.id, taskTitle: t.title })
+    return hits
+  }, [course, loadCourse, tech])
   return (
-    <div className="animate-fade-in">
-      <DocH2 anchor="install">快速开始</DocH2>
-      <DocP>从环境准备到完成第一次 LLM 调用,5 分钟跑通整个项目。</DocP>
-
-      <DocH3>环境要求</DocH3>
-      <DocUl items={[
-        'Node.js ≥ 20 + pnpm ≥ 9',
-        'Python ≥ 3.12',
-        'Docker Desktop(代码沙箱,可选)',
-        '一个 OpenAI 兼容 API key(推荐 DeepSeek,便宜)',
-      ]} />
-
-      <DocH3>1. 安装依赖</DocH3>
-      <CodeBlock
-        code={'pnpm install                            # 前端依赖\ncd backend && pip install -e ".[dev]"   # 后端依赖\ncp .env.example .env                    # 复制环境变量'}
-        language="bash"
-      />
-
-      <DocH3>2. 配置 API key</DocH3>
-      <DocP>
-        在项目根目录 <DocCode>.env</DocCode> 填入:
-      </DocP>
-      <CodeBlock
-        code={'OPENAI_API_KEY=sk-...\nOPENAI_BASE_URL=https://api.deepseek.com\nGENERATOR_MODEL=deepseek-v4-pro'}
-        language="bash"
-      />
-      <DocP small>
-        接口完全兼容 OpenAI SDK,改 base_url 即可切换厂商(DeepSeek/通义/Moonshot 都支持)。
-        你也可以在学习时从导航栏 ⚙️ 直接配置,不用改文件。
-      </DocP>
-
-      <DocH3>3. 启动服务</DocH3>
-      <CodeBlock
-        code={'pnpm dev:backend   # 后端(端口 4200)\npnpm dev          # 前端(端口 3200, 另开终端)'}
-        language="bash"
-      />
-      <DocP small>
-        打开 <DocCode>http://localhost:3200</DocCode> 即可开始。
-        (可选) 沙箱镜像: <DocCode>pnpm build:sandbox</DocCode>
-      </DocP>
-
-      <DocH3>4. 开始第一课</DocH3>
-      <DocP>
-        访问 <DocCode>/learn</DocCode> 选章节进入任务:
-        左侧写代码,右侧看说明/提示/参考代码,点"验证"通关,获得经验解锁下一关。
-      </DocP>
+    <div>
+      <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-50">{tech.name}</h1>
+      <div className="mt-3"><Badge color="blue">{tech.category}</Badge></div>
+      <h2 id="sec-介绍" data-anchor-id="介绍" className="mt-8 scroll-mt-24 border-t border-slate-200 pt-6 text-xl font-extrabold text-slate-900 dark:border-slate-700 dark:text-slate-100">介绍</h2>
+      <p className="mt-3 leading-relaxed text-slate-600 dark:text-slate-300">{tech.description}</p>
+      <h2 id="sec-API 要点" data-anchor-id="API 要点" className="mt-8 scroll-mt-24 border-t border-slate-200 pt-6 text-xl font-extrabold text-slate-900 dark:border-slate-700 dark:text-slate-100">API 要点</h2>
+      <div className="mt-3"><CodeBlock language="python" code={tech.apiPoints} /></div>
+      <h2 id="sec-安装" data-anchor-id="安装" className="mt-8 scroll-mt-24 border-t border-slate-200 pt-6 text-xl font-extrabold text-slate-900 dark:border-slate-700 dark:text-slate-100">安装</h2>
+      <div className="mt-3"><CodeBlock language="bash" code={tech.installHint} /></div>
+      <h2 id="sec-官方文档" data-anchor-id="官方文档" className="mt-8 scroll-mt-24 border-t border-slate-200 pt-6 text-xl font-extrabold text-slate-900 dark:border-slate-700 dark:text-slate-100">官方文档</h2>
+      <p className="mt-3">
+        <a href={tech.officialUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-bold text-brand-600 hover:bg-brand-50 dark:border-slate-700 dark:text-brand-300 dark:hover:bg-slate-800">
+          {tech.officialUrl} ↗
+        </a>
+      </p>
+      <h2 id="sec-用到的地方" data-anchor-id="用到的地方" className="mt-8 scroll-mt-24 border-t border-slate-200 pt-6 text-xl font-extrabold text-slate-900 dark:border-slate-700 dark:text-slate-100">修炼之路中用到的地方</h2>
+      {usedIn.length ? (
+        <ul className="mt-3 space-y-1.5">
+          {usedIn.map((h) => (
+            <li key={h.taskId} className="text-sm text-slate-600 dark:text-slate-300">
+              <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-brand-400 align-middle" />
+              {h.taskTitle} <span className="text-xs text-slate-400">({h.taskId})</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm text-slate-400">（课程树加载后聚合展示）</p>
+      )}
     </div>
   )
 }
 
-/** 学习路径 */
-function LearningPath() {
+function InstallContent() {
   return (
-    <div className="animate-fade-in">
-      <DocH2 anchor="path">学习路径</DocH2>
-      <DocP>8 章 39 任务按难度递进,每章有解锁条件(等级/经验/前置任务)。建议按顺序学习。</DocP>
-
-      <DocH3>难度与经验</DocH3>
-      <DocP>任务按难度分级,经验奖励递增:</DocP>
-      <div className="mb-5 mt-2 flex flex-wrap gap-2">
-        <Badge color="green">easy · 10 exp</Badge>
-        <Badge color="blue">medium · 20 exp</Badge>
-        <Badge color="amber">hard · 40 exp</Badge>
-        <Badge color="red">boss · 80 exp</Badge>
-      </div>
-
-      <DocH3>章节递进</DocH3>
-      <ol className="mb-5 mt-2 space-y-2 text-base text-slate-600">
-        {[
-          '第一章 项目起步 · LLM 基础(5 任务):DeepSeek 接入/多轮对话/流式输出/结构化输出/Token 经济学',
-          '第二章 进入项目组 · LangChain 架构(5 任务):LCEL 管道/提示词模板/输出解析器/对话记忆/链路由',
-          '第三章 资料检索 · RAG 检索增强(5 任务):文档加载切分/Embedding 入库/检索重排/RAG 链/评估',
-          '第四章 工具开发进阶 · Agent 智能体(5 任务):自定义工具/手写 ReAct/AgentExecutor/结构化工具/记忆与人机协同',
-          '第五章 运行时工程 · Harness 工程(5 任务):核心循环/上下文窗口/错误韧性/可观测/插件化',
-          '第六章 多 Agent 协作 · 多 Agent 协作(4 任务):消息总线/Supervisor 编排/辩论评审/CrewAI 团队',
-          '第七章 微型模型实验 · 自建小模型(5 任务):Tokenizer/手写 Transformer/训练循环/微调蒸馏/量化部署',
-          '第八章 黑糖资料室 · 毕业设计(5 任务):需求架构/核心 RAG/Agent 决策层/Docker 部署/验收上线',
-        ].map((t, i) => (
-          <li key={i} className="flex gap-3">
-            <span className="font-semibold text-slate-400">{i + 1}.</span>
-            <span>{t}</span>
-          </li>
-        ))}
-      </ol>
-
-      <DocH3>学习建议</DocH3>
-      <DocUl items={[
-        '按章节顺序学习,基础不牢不跳关',
-        '先自己写代码,再看提示/参考代码(参考代码运行后解锁)',
-        '卡住时点"提示"(免费,不扣经验)',
-        '通关后回顾"技术栈"Tab,理解每个技术的来龙去脉',
-      ]} />
+    <div>
+      <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-50">安装与配置</h1>
+      <h2 id="sec-环境要求" data-anchor-id="环境要求" className="mt-8 scroll-mt-24 border-t border-slate-200 pt-6 text-xl font-extrabold text-slate-900 dark:border-slate-700 dark:text-slate-100">环境要求</h2>
+      <p className="mt-3 leading-relaxed text-slate-600 dark:text-slate-300">Node.js 20+（pnpm 经 corepack）、Python 3.12+；Docker 可选（沙箱真实运行用）。</p>
+      <h2 id="sec-安装步骤" data-anchor-id="安装步骤" className="mt-8 scroll-mt-24 border-t border-slate-200 pt-6 text-xl font-extrabold text-slate-900 dark:border-slate-700 dark:text-slate-100">安装步骤</h2>
+      <div className="mt-3"><CodeBlock language="bash" code={'corepack pnpm install\ncd backend && pip install -e ".[dev]"\ncp .env.example .env  # 填入你自己的 DeepSeek Key'} /></div>
+      <h2 id="sec-启动" data-anchor-id="启动" className="mt-8 scroll-mt-24 border-t border-slate-200 pt-6 text-xl font-extrabold text-slate-900 dark:border-slate-700 dark:text-slate-100">启动</h2>
+      <div className="mt-3"><CodeBlock language="bash" code={'cd frontend && corepack pnpm dev            # 前端 3200\ncd backend && uvicorn app.main:app --port 4200  # 后端 4200'} /></div>
     </div>
   )
 }
 
-/** FAQ 常见问题 */
-function FaqBlock() {
-  const faqs = [
-    { q: '需要什么基础?', a: '会 Python 基础语法即可。课程从第一次 LLM API 调用开始,循序渐进到 Agent、RAG、甚至自建小模型。' },
-    { q: '需要配置什么?', a: '一个 OpenAI 兼容 API key(支持 DeepSeek/通义/Moonshot 等)。代码执行沙箱需要 Docker(可选,没有则部分任务降级为前端验证)。' },
-    { q: '前端后端端口分别是多少?', a: '前端 3200、后端 4200。在 vite.config.ts(server.port+proxy) 与 backend/app/config.py(backend_port) 配置,.env 可覆盖。' },
-    { q: '进度会丢失吗?', a: '不会。进度存在浏览器 localStorage,无需登录。Profile 页支持导出/导入进度 JSON,方便迁移设备。' },
-    { q: '课程内容是谁写的?', a: '课程内容由 LLM 生成(项目内置课程生成器),结构化教学,经 Pydantic 校验。每章每任务都有完整的步骤、提示、术语、代码样例和验证规则。' },
-    { q: '右侧的"任务清单"是什么?', a: '每步右侧顶部会列出 2~4 条 checklist,把当前步骤该做的事拆成可勾选的小项(比如"补全 API Key 校验""实现指数退避重试")。照着逐条完成、逐条打勾,全部勾上后就可以点"验证"通关——它既是步骤指南,也是自检清单。' },
-    { q: '代码会在哪运行?', a: '默认前端智能验证(检查代码结构/API 调用),关键任务可点"运行"调后端 Docker 沙箱真实执行,看真实 stdout/stderr。沙箱隔离网络/只读/资源限制,安全。' },
-    { q: '"完整代码参考"为什么点不开?', a: '参考代码默认锁定,先点一次"运行"或"验证"后解锁——鼓励先自己动手写,再对照参考。' },
-    { q: '能换别的模型吗?', a: '能。接口完全兼容 OpenAI SDK,改导航栏 ⚙️ 的 base_url + model 即可切换 DeepSeek/通义/Moonshot/OpenAI。课程默认 deepseek-v4-pro(便宜)。' },
-    { q: '报错 401 / 429 / 5xx 是什么意思?', a: '先认类别再对症下药:401 = Key 失效或填错(回 ⚙️ 检查是否复制完整/过期);429 = 请求过密被限流或额度用尽(DeepSeek 常见余额不足,去控制台充值);5xx = 服务端自身出错/过载,不是你的问题,重试最有效(s4 教的指数退避就是干这个的);连接失败/超时 = 网络不通或 BASE_URL 打错。课程代码里 except 分支的 type(exc).__name__ 打印的就是这些异常类型。' },
-  ]
+function PathContent() {
   return (
-    <div className="animate-fade-in">
-      <DocH2 anchor="faq">FAQ 常见问题</DocH2>
-      <div className="mt-4 space-y-6">
-        {faqs.map((f) => (
-          <div key={f.q}>
-            <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">{f.q}</h4>
-            <p className="mt-1.5 text-base leading-relaxed text-slate-600 dark:text-slate-200">{f.a}</p>
+    <div>
+      <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-50">学习路径</h1>
+      <p className="mt-3 leading-relaxed text-slate-600 dark:text-slate-300">八个章节组成一条升级路线，从第一次 API 调用到自建小模型。建议按顺序推进，每章都有明确的项目产出。</p>
+      <h2 id="sec-八站一览" data-anchor-id="八站一览" className="mt-8 scroll-mt-24 border-t border-slate-200 pt-6 text-xl font-extrabold text-slate-900 dark:border-slate-700 dark:text-slate-100">八站一览</h2>
+      <p className="mt-3 leading-relaxed text-slate-600 dark:text-slate-300">01 项目起步 · LLM 基础 → 02 LangChain 架构 → 03 RAG 检索增强 → 04 Agent 智能体 → 05 Harness 工程 → 06 多 Agent 协作 → 07 自建小模型 → 08 毕业设计。</p>
+    </div>
+  )
+}
+
+function FaqContent() {
+  return (
+    <div>
+      <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-50">FAQ 常见问题</h1>
+      <div className="mt-4 divide-y divide-slate-200 dark:divide-slate-700">
+        {FAQS.map(([q, a]) => (
+          <div key={q} className="py-4">
+            <h4 className="text-base font-bold text-slate-900 dark:text-slate-100">{q}</h4>
+            <p className="mt-1.5 leading-relaxed text-slate-600 dark:text-slate-300">{a}</p>
           </div>
         ))}
       </div>
@@ -243,112 +167,33 @@ function FaqBlock() {
   )
 }
 
-/* ================= 排版原子组件(文档风) ================= */
-
-function DocH2({ children, anchor }: { children: React.ReactNode; anchor?: string }) {
-  return (
-    <h2 id={anchor} data-anchor-id={anchor} className="scroll-mt-20 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-      {children}
-    </h2>
-  )
-}
-function DocH3({ children }: { children: React.ReactNode }) {
-  return <h3 className="mb-2.5 mt-8 text-lg font-semibold text-slate-900 dark:text-slate-100">{children}</h3>
-}
-function DocP({ children, small }: { children: React.ReactNode; small?: boolean }) {
-  return <p className={`mt-1.5 leading-relaxed text-slate-600 dark:text-slate-200 ${small ? 'text-xs' : 'text-base'}`}>{children}</p>
-}
-function DocCode({ children }: { children: React.ReactNode }) {
-  return <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-sm text-brand-700 dark:bg-slate-800 dark:text-brand-300">{children}</code>
-}
-function DocUl({ items }: { items: string[] }) {
-  return (
-    <ul className="mt-2 space-y-2 text-base text-slate-600 dark:text-slate-200">
-      {items.map((t, i) => (
-        <li key={i} className="flex gap-2">
-          <span className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-slate-400" />
-          {t}
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-/* ================= 菜单配置(三级) ================= */
-interface MenuLeaf {
-  id: string
-  label: string
-}
-interface MenuSub {
-  id: string
-  label: string
-  children?: MenuLeaf[]
-}
-interface MenuGroup {
-  id: string
-  label: string
-  items: MenuSub[]
-}
-
-const MENU: MenuGroup[] = [
-  {
-    id: 'newbie',
-    label: '新手村',
-    items: WIKI_SECTIONS.map((s) => ({
-      id: `wiki:${s.id}`,
-      label: s.label,
-      children: s.leaves.map((l) => ({ id: `wiki:${s.id}:${l.anchor}`, label: l.label })),
-    })),
-  },
-  {
-    id: 'start',
-    label: '快速开始',
-    items: [
-      { id: 'install', label: '安装与配置' },
-      { id: 'path', label: '学习路径' },
-    ],
-  },
-  {
-    id: 'tech',
-    label: '技术参考',
-    items: TECH_GROUPS.map((g) => ({
-      id: `techref:${g.title}`,
-      label: g.title,
-      children: g.techs.map((t) => ({ id: `techref:${g.title}:${t.name}`, label: t.name })),
-    })),
-  },
-  {
-    id: 'help',
-    label: '帮助',
-    items: [{ id: 'faq', label: 'FAQ 常见问题' }],
-  },
-]
-
 /* ================= 页面主体 ================= */
 
-/** /docs 文档页: 左侧层级菜单(三级) + 右侧纯内容(Kimi 文档风, 无卡片)。 */
+/** PROTOTYPE /docs 重做预览: 三栏(旅程导航树 + 内容 + 页内 TOC) + 面包屑 + 翻页。 */
 export function Docs() {
-  const [selected, setSelected] = useState('wiki:beginner')
-  const [activeId, setActiveId] = useState('wiki:beginner')
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
-  const [collapsedSub, setCollapsedSub] = useState<Set<string>>(new Set())
+  const [pageId, setPageId] = useState(PAGES[0].id)
+  const [closed, setClosed] = useState<Set<string>>(new Set())
+  const [activeAnchor, setActiveAnchor] = useState('')
   const dark = useTheme((s) => s.dark)
+  const idx = PAGES.findIndex((p) => p.id === pageId)
+  const page = PAGES[idx]
+  const asideRef = useRef<HTMLElement | null>(null)
+  const scrollToken = useRef(0)
 
-  // scroll-spy: 右侧滚动时,左侧菜单高亮跟随视口内最靠上的锚点
+  // scroll-spy(沿用原版 Docs 机制): 判定线 = 视口顶部向下 25%, 内容块顶滚过线即视为正在阅读
   useEffect(() => {
     let ticking = false
     const compute = () => {
       const anchors = Array.from(document.querySelectorAll<HTMLElement>('[data-anchor-id]'))
       if (anchors.length === 0) return
-      // 判定线: 视口顶部向下 25% 处 —— 内容块顶滚过这条线即视为"正在阅读此块",提前高亮更跟手
       const threshold = Math.round(window.innerHeight * 0.25)
-      let current = anchors[0]
+      let cur = anchors[0]
       for (const a of anchors) {
-        if (a.getBoundingClientRect().top <= threshold) current = a
+        if (a.getBoundingClientRect().top <= threshold) cur = a
         else break
       }
-      const id = current.dataset.anchorId
-      if (id) setActiveId(id)
+      const id = cur.dataset.anchorId
+      if (id) setActiveAnchor(id)
     }
     const onScroll = () => {
       if (ticking) return
@@ -359,242 +204,173 @@ export function Docs() {
       })
     }
     window.addEventListener('scroll', onScroll, { passive: true })
-    compute() // 切换区块后锚点集合变化,立即重算一次
+    compute()
     return () => window.removeEventListener('scroll', onScroll)
-  }, [selected])
+  }, [pageId])
 
-  // 左侧菜单跟随: 高亮项滚出 aside 可视区时,自动滚回可视区(60+ 项超出视口高度)
-  const asideRef = useRef<HTMLElement | null>(null)
+  // 左侧导航自动跟随(沿用原版): 高亮项滚出可视区时滚回
   useEffect(() => {
     const aside = asideRef.current
-    if (!aside) return
-    const btn = aside.querySelector<HTMLElement>(`[data-menu-id="${activeId}"]`)
-    if (!btn) return
-    const b = btn.getBoundingClientRect()
+    if (!aside || !activeAnchor) return
+    const el = aside.querySelector<HTMLElement>(`[data-anchor-nav="${CSS.escape(activeAnchor)}"]`)
+    if (!el) return
+    const b = el.getBoundingClientRect()
     const a = aside.getBoundingClientRect()
-    if (b.top < a.top) {
-      aside.scrollTop += b.top - a.top - 4
-    } else if (b.bottom > a.bottom) {
-      aside.scrollTop += b.bottom - a.bottom + 4
-    }
-  }, [activeId])
+    if (b.top < a.top) aside.scrollTop += b.top - a.top - 4
+    else if (b.bottom > a.bottom) aside.scrollTop += b.bottom - a.bottom + 4
+  }, [activeAnchor])
 
-  const toggle = (id: string) => {
-    setCollapsed((s) => {
+  const toggle = (key: string) =>
+    setClosed((s) => {
       const next = new Set(s)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
+
+  const go = (id: string) => {
+    setPageId(id)
+    setActiveAnchor('')
+    window.scrollTo({ top: 0 })
   }
-  const toggleSub = (id: string) => {
-    setCollapsedSub((s) => {
+
+  // 点四级导航(wiki 小节): 选中页 + 平滑滚动到小节(沿用原版: 双 rAF + token 守卫)
+  const goSection = (pid: string, section: string) => {
+    const token = ++scrollToken.current
+    if (pid !== pageId) {
+      setPageId(pid)
+      setActiveAnchor('')
+    }
+    const scroll = () => {
+      if (scrollToken.current !== token) return
+      document.getElementById(`sec-${section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    requestAnimationFrame(() => requestAnimationFrame(scroll))
+  }
+
+  // 四级导航折叠状态(默认展开)
+  const [secClosed, setSecClosed] = useState<Set<string>>(new Set())
+  const toggleSec = (pid: string) =>
+    setSecClosed((s) => {
       const next = new Set(s)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(pid)) next.delete(pid)
+      else next.add(pid)
       return next
     })
-  }
 
-  // 点三级菜单(技术项): 选中 + 滚动到对应技术锚点
-  const scrollToken = useRef(0)
-  const selectTech = (subId: string, techName: string) => {
-    const id = `techref:${subId}:${techName}`
-    setSelected(id)
-    setActiveId(id)
-    const token = ++scrollToken.current
-    const anchorId = `tech-${techName.replace(/[^a-zA-Z0-9]/g, '-')}`
-    const scrollToAnchor = () => {
-      if (scrollToken.current !== token) return // 已改点别的技术项,放弃本次滚动
-      document.getElementById(anchorId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-    // 课程数据异步加载中: 「在课程中用到」等 usage 区块还没渲染,锚点位置不固定。
-    // 等课程加载完成、React 渲染出 usage 区块后再滚动,避免滚动到一半锚点被顶偏。
-    const tryScroll = (attempt: number) => {
-      if (scrollToken.current !== token) return
-      if (!useCourse.getState().course && attempt < 30) {
-        setTimeout(() => tryScroll(attempt + 1), 80)
-        return
-      }
-      // 课程数据已就绪(或等待超时): 双 rAF 等本轮渲染提交、布局稳定后再滚动
-      requestAnimationFrame(() => requestAnimationFrame(scrollToAnchor))
-    }
-    tryScroll(0)
-  }
+  const tocAnchors = useMemo(() => tocAnchorsFor(page), [page])
 
-  // 点三级菜单(wiki 小节): 选中 + 滚动到对应小节锚点(与技术参考同款机制: 双 rAF + token 守卫)
-  const selectWiki = (leafId: string) => {
-    const [, sectionId, anchor] = leafId.split(':')
-    const id = `wiki:${sectionId}`
-    setSelected(id)
-    setActiveId(leafId)
-    const token = ++scrollToken.current
-    const anchorElId = `wiki-${sectionId}-${wikiSlug(anchor ?? '')}`
-    const scrollToAnchor = () => {
-      if (scrollToken.current !== token) return
-      document.getElementById(anchorElId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-    requestAnimationFrame(() => requestAnimationFrame(scrollToAnchor))
-  }
-
-  const renderContent = () => {
-    // 新手村 wiki 主题: wiki:主题id
-    if (selected.startsWith('wiki:')) {
-      const section = WIKI_SECTIONS.find((s) => s.id === selected.split(':')[1])
-      if (section) return <WikiPage sectionId={section.id} md={section.md} activeAnchor={activeId} />
-    }
-    // 技术参考主题或技术项: techref:主题名[:技术名]
-    if (selected.startsWith('techref:')) {
-      const parts = selected.split(':')
-      const groupTitle = parts[1]
-      // 高亮跟随 activeId(点击与滚动共用),与 selected 解耦避免滚动时重挂内容
-      const activeParts = activeId.split(':')
-      const highlightTech = activeId.startsWith('techref:') && activeParts.length === 3 ? activeParts[2] : undefined
-      return (
-        <div className="animate-fade-in">
-          <DocH2 anchor={`techref:${groupTitle}`}>{groupTitle}</DocH2>
-          <div className="mt-5">
-            <TechReferenceGroup groupTitle={groupTitle} highlight={highlightTech} />
-          </div>
-        </div>
-      )
-    }
-    switch (selected) {
-      case 'install':
-        return <QuickStartInstall />
-      case 'path':
-        return <LearningPath />
-      case 'faq':
-        return <FaqBlock />
-      default:
-        return <QuickStartInstall />
-    }
-  }
+  const prev = PAGES[idx - 1]
+  const next = PAGES[idx + 1]
 
   return (
     <div className={`w-full min-h-[calc(100vh-3.5rem)] transition-colors duration-300 ${dark ? 'dark bg-slate-950' : ''}`}>
-      <div className="flex">
-        {/* 左侧层级菜单(贴左, 粘性, 细边线分隔) */}
-        <aside ref={asideRef} className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 flex-shrink-0 overflow-y-auto border-r border-slate-200 py-6 pl-4 pr-6 transition-colors duration-300 md:block dark:border-slate-800 dark:bg-slate-950">
-          {/* 深浅色切换: 只作用于 /docs, 放在文档导航最上方（全局导航与文档导航之间） */}
-          <div className="mb-4 flex items-center justify-between px-2">
-            <span className="text-xs text-slate-400 dark:text-slate-500">{dark ? '切换日间模式' : '切换夜间模式'}</span>
-            <ThemeToggle />
-          </div>
-          <nav className="space-y-1">
-            {MENU.map((group) => {
-              const isCollapsed = collapsed.has(group.id)
+    <div className="mx-auto grid max-w-[1440px] grid-cols-[240px_minmax(0,1fr)_200px] gap-10 px-6 py-8 max-lg:grid-cols-[220px_minmax(0,1fr)] max-md:grid-cols-1">
+      {/* 左: 旅程导航树 */}
+      <nav ref={asideRef} className="sticky top-[76px] h-[calc(100vh-76px)] overflow-y-auto border-r border-slate-200 pr-3 pb-16 max-md:static max-md:h-auto max-md:border-r-0 dark:border-slate-700">
+        {JOURNEY.map((j) => (
+          <div key={j.label} className="mb-5">
+            <div className="px-3 pb-2 text-[11px] font-extrabold tracking-[0.14em] text-slate-400 dark:text-slate-500">{j.label}</div>
+            {j.groups.map((gtitle) => {
+              const leaves = PAGES.filter((p) => p.journey === j.label && p.group === gtitle)
+              if (!leaves.length) return null
+              const key = `${j.label}:${gtitle}`
+              const isClosed = closed.has(key)
               return (
-                <div key={group.id}>
-                  <button
-                    onClick={() => toggle(group.id)}
-                    className="flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm font-semibold text-slate-700 transition-colors hover:text-slate-900 dark:text-slate-200 dark:hover:text-slate-100"
-                  >
-                    {group.label}
-                    <span className={`text-xs text-slate-400 transition-transform dark:text-slate-300 ${isCollapsed ? '' : 'rotate-90'}`}>▶</span>
+                <div key={key} className="mb-1">
+                  <button type="button" onClick={() => toggle(key)} className="flex w-full items-center gap-1.5 rounded-lg px-3 py-2 text-left text-[13px] font-bold text-slate-700 hover:bg-brand-50 dark:text-slate-200 dark:hover:bg-slate-800">
+                    {gtitle}
+                    <span className={`ml-auto text-[9px] text-slate-400 transition-transform ${isClosed ? '-rotate-90' : ''}`}>▼</span>
                   </button>
-                  {!isCollapsed && (
-                    <div className="mb-2 mt-0.5 space-y-0.5">
-                      {group.items.map((item) => {
-                        const isTechGroup = item.children && item.children.length > 0
-                        const subCollapsed = collapsedSub.has(item.id)
-                        return (
-                          <div key={item.id}>
-                            <button
-                              onClick={() => {
-                                if (isTechGroup) {
-                                  // 点击主题标题 = 选中 + 确保子项展开(此前被折叠则恢复),便于接着点具体技术
-                                  setCollapsedSub((s) => {
-                                    if (!s.has(item.id)) return s
-                                    const next = new Set(s)
-                                    next.delete(item.id)
-                                    return next
-                                  })
-                                  setSelected(item.id) // 选中也显示该主题
-                                } else {
-                                  setSelected(item.id)
-                                }
-                                setActiveId(item.id)
-                              }}
-                              data-menu-id={item.id}
-                              className={`flex w-full items-center justify-between rounded-md border-l-2 py-2 pl-4 pr-3 text-left text-sm transition-colors ${
-                                activeId === item.id
-                                  ? 'border-brand-500 bg-brand-50 font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300'
-                                  : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/60 dark:hover:text-slate-100'
-                              }`}
-                            >
-                              {item.label}
-                              {isTechGroup && (
-                                <span
-                                  onClick={(e) => {
-                                    e.stopPropagation() // 折叠/展开只由箭头触发,不改变选中
-                                    toggleSub(item.id)
-                                  }}
-                                  className={`cursor-pointer text-[10px] text-slate-400 transition-transform dark:text-slate-300 ${subCollapsed ? '' : 'rotate-90'}`}
-                                >▶</span>
-                              )}
-                            </button>
-                            {/* 三级: 技术项 */}
-                            {isTechGroup && !subCollapsed && (
-                              <div className="mt-0.5 space-y-0.5">
-                                {item.children!.map((leaf) => {
-                                  const leafActive = activeId === leaf.id
-                                  return (
-                                    <button
-                                      key={leaf.id}
-                                      onClick={() =>
-                                        leaf.id.startsWith('wiki:')
-                                          ? selectWiki(leaf.id)
-                                          : selectTech(item.id.slice('techref:'.length), leaf.label)
-                                      }
-                                      data-menu-id={leaf.id}
-                                      className={`w-full rounded-md py-1.5 pl-8 pr-3 text-left text-xs transition-colors ${
-                                        leafActive
-                                          ? 'bg-brand-50 font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300'
-                                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-white dark:hover:text-slate-900'
-                                      }`}
-                                    >
-                                      {leaf.label}
-                                    </button>
-                                  )
-                                })}
-                              </div>
+                  {!isClosed && (
+                    <div className="mb-1.5 ml-3 border-l border-slate-200 pl-2 dark:border-slate-700">
+                      {leaves.map((p) => (
+                        <div key={p.id}>
+                          <div className="flex items-center">
+                            <a onClick={() => go(p.id)} className={`block flex-1 cursor-pointer rounded-md px-3 py-1.5 text-[13px] ${p.id === pageId ? 'bg-brand-50 font-bold text-brand-700 shadow-[inset_2px_0_0] shadow-brand-500 dark:bg-slate-800 dark:text-brand-300' : 'text-slate-500 hover:bg-brand-50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'}`}>
+                              {p.title}
+                            </a>
+                            {p.kind === 'wiki' && p.id === pageId && (
+                              <button
+                                type="button"
+                                onClick={() => toggleSec(p.id)}
+                                title={secClosed.has(p.id) ? '展开小节导航' : '折叠小节导航'}
+                                className="ml-1 rounded px-1.5 py-1 text-[9px] text-slate-400 hover:bg-brand-50 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                              >
+                                {secClosed.has(p.id) ? '▸' : '▾'}
+                              </button>
                             )}
                           </div>
-                        )
-                      })}
+                          {/* 四级导航: 当前 wiki 页展开文内小节(短标题, 正文标题不动), 可折叠; 点击平滑滚动 + 滚动时高亮跟随 */}
+                          {p.kind === 'wiki' && p.id === pageId && !secClosed.has(p.id) && (
+                            <div className="ml-3 border-l border-dashed border-slate-200 pl-2 dark:border-slate-700">
+                              {wikiSections(p.id).map((sec) => (
+                                <a
+                                  key={sec}
+                                  data-anchor-nav={sec}
+                                  onClick={() => goSection(p.id, sec)}
+                                  className={`block cursor-pointer rounded px-2.5 py-1 text-xs transition-colors ${activeAnchor === sec ? 'font-bold text-brand-600 dark:text-brand-300' : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200'}`}
+                                >
+                                  {secLabel(sec)}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               )
             })}
-          </nav>
-        </aside>
-
-        {/* 右侧纯内容区(无边框无阴影) */}
-        <main className="min-w-0 max-w-screen-2xl flex-1 mx-auto px-6 py-6 md:px-12">
-          {/* 移动端菜单切换 */}
-          <div className="mb-5 md:hidden">
-            <select
-              value={selected}
-              onChange={(e) => {
-                setSelected(e.target.value)
-                setActiveId(e.target.value)
-              }}
-              className="input w-full text-sm"
-            >
-              {MENU.map((g) => (
-                <optgroup key={g.id} label={g.label}>
-                  {g.items.map((i) => (
-                    <option key={i.id} value={i.id}>{i.label}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
           </div>
-          {renderContent()}
-        </main>
-      </div>
+        ))}
+      </nav>
+
+      {/* 中: 面包屑 + 内容 + 翻页 */}
+      <main className="min-w-0 pb-16">
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <span>{page.journey}</span><span>/</span><span>{page.group}</span><span>/</span>
+          <b className="font-semibold text-brand-600 dark:text-brand-300">{page.title}</b>
+          <span className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
+          </span>
+        </div>
+        <article className="mt-5 max-w-[760px]">
+          {page.kind === 'wiki' && <WikiContent id={page.id} activeAnchor={activeAnchor} />}
+          {page.kind === 'tech' && <TechContent tech={page.tech} />}
+          {page.kind === 'install' && <InstallContent />}
+          {page.kind === 'path' && <PathContent />}
+          {page.kind === 'faq' && <FaqContent />}
+        </article>
+        <nav className="mt-14 grid max-w-[760px] grid-cols-2 gap-3.5">
+          {prev ? (
+            <a onClick={() => go(prev.id)} className="flex cursor-pointer flex-col gap-1 rounded-xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-lg dark:border-slate-700 dark:bg-slate-900">
+              <small className="text-[11px] text-slate-400">← 上一页</small>
+              <b className="text-sm font-bold text-slate-800 dark:text-slate-100">{prev.title}</b>
+            </a>
+          ) : <span />}
+          {next && (
+            <a onClick={() => go(next.id)} className="flex cursor-pointer flex-col items-end gap-1 rounded-xl border border-slate-200 bg-white p-4 text-right transition hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-lg dark:border-slate-700 dark:bg-slate-900">
+              <small className="text-[11px] text-slate-400">下一页 →</small>
+              <b className="text-sm font-bold text-slate-800 dark:text-slate-100">{next.title}</b>
+            </a>
+          )}
+        </nav>
+        {/* 页尾留白(沿用原版): 让最后一节锚点能滚到判定线以上; 放在翻页之后, 翻页按钮紧贴正文 */}
+        {page.kind === 'wiki' && <div className="h-[55vh]" aria-hidden />}
+      </main>
+
+      {/* 右: 页内 TOC */}
+      <aside className="sticky top-[76px] h-[calc(100vh-76px)] overflow-y-auto border-l border-slate-200 pl-4 pb-16 max-lg:hidden dark:border-slate-700">
+        <div className="pb-2.5 text-[11px] font-extrabold tracking-[0.14em] text-slate-400 dark:text-slate-500">本页目录</div>
+        {tocAnchors.map((a) => (
+          <a key={a} onClick={() => goSection(page.id, a)} className={`block cursor-pointer border-l-2 py-1 pl-3 text-xs transition-colors ${activeAnchor === a ? 'border-brand-500 font-bold text-brand-600 dark:text-brand-300' : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'}`}>
+            {secLabel(a)}
+          </a>
+        ))}
+      </aside>
+    </div>
     </div>
   )
 }
